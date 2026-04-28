@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RE Agent Pack — TrackAll Loan Maintenance Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:   #0c2554;
+  --navy2:  #163a7a;
+  --amber:  #f0a500;
+  --amber2: #ffc542;
+  --blue-acc: #1e73be;
+  --green-acc: #1a7a4a;
+  --teal:   #0d7377;
+  --light:  #f5f7fb;
+  --mid:    #e8ecf5;
+  --white:  #ffffff;
+  --text:   #1a2540;
+  --muted:  #5c6b8a;
+  --tag-tandem: #dbeafe;
+  --tag-tandem-text: #1e40af;
+  --tag-cobol: #fef3c7;
+  --tag-cobol-text: #92400e;
+  --tag-ext: #dcfce7;
+  --tag-ext-text: #166534;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--light);
+  line-height: 1.6;
+}
+
+/* ── HEADER ─────────────────────────────────────────── */
+header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.header-brand .logo-pill {
+  background: var(--amber);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: .5px;
+}
+.header-brand h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--white);
+}
+.header-meta {
+  font-size: 12px;
+  color: rgba(255,255,255,.55);
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* ── HERO ────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--navy2) 0%, var(--navy) 100%);
+  color: var(--white);
+  padding: 52px 40px 44px;
+  text-align: center;
+}
+.hero h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  font-weight: 400;
+  margin-bottom: 18px;
+  line-height: 1.25;
+}
+.hero h2 span { color: var(--amber2); }
+.hero-cards {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.hero-card {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  padding: 22px 28px;
+  max-width: 290px;
+  text-align: left;
+  position: relative;
+}
+.hero-card .hc-num {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--amber2);
+  line-height: 1;
+}
+.hero-card .hc-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  margin: 6px 0 4px;
+}
+.hero-card .hc-label {
+  font-size: 13px;
+  color: rgba(255,255,255,.65);
+  line-height: 1.5;
+}
+.hero-card .hc-arrow {
+  position: absolute;
+  right: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--amber2);
+  font-size: 22px;
+  font-weight: 700;
+  z-index: 1;
+}
+.portability-note {
+  margin-top: 32px;
+  display: inline-block;
+  background: rgba(240,165,0,.15);
+  border: 1px solid rgba(240,165,0,.35);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  color: rgba(255,255,255,.85);
+}
+.portability-note strong { color: var(--amber2); }
+
+/* ── SECTION WRAPPER ─────────────────────────────────── */
+.section {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 44px 24px;
+}
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.section-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.divider { border: none; border-top: 1px solid var(--mid); margin: 8px 0 32px; }
+
+/* ── SLIDE LABELS ────────────────────────────────────── */
+.slide-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.slide-label .sl-num {
+  background: var(--amber);
+  color: var(--navy);
+  border-radius: 2px;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* ── APPLICATION / ARCHITECTURE ─────────────────────── */
+.arch-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.arch-layer {
+  width: 100%;
+  max-width: 680px;
+  border-radius: 12px;
+  padding: 22px 28px;
+  position: relative;
+}
+.arch-layer.layer-client  { background: #e8f0fb; border: 2px solid var(--navy2); }
+.arch-layer.layer-tandem  { background: #fef9ec; border: 2px solid var(--amber); }
+.arch-layer.layer-sql     { background: #edfaf4; border: 2px solid var(--teal); }
+
+.arch-layer h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  margin-bottom: 6px;
+}
+.layer-client h3  { color: var(--navy); }
+.layer-tandem h3  { color: #7a4a00; }
+.layer-sql    h3  { color: var(--teal); }
+
+.arch-layer .arch-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.arch-item {
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.layer-client  .arch-item { background: var(--navy);  color: #fff; }
+.layer-tandem  .arch-item { background: var(--amber);  color: var(--navy); }
+.layer-sql     .arch-item { background: var(--teal);   color: #fff; }
+
+.arch-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+}
+.arch-connector .conn-line {
+  width: 2px;
+  height: 20px;
+  background: var(--muted);
+}
+.arch-connector .conn-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: var(--light);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+.arch-layer .arch-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  font-style: italic;
+}
+.callout-box {
+  max-width: 680px;
+  margin: 16px auto 0;
+  background: #fff8e1;
+  border-left: 4px solid var(--amber);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.callout-box strong { color: #7a4a00; }
+
+/* ── PIPELINE ────────────────────────────────────────── */
+.pipeline-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.pipe-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.pipe-step:hover { transform: translateY(-2px); }
+.pipe-step .step-num {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pipe-step.active .step-num { background: var(--amber); color: var(--navy); }
+.pipe-step.orch .step-num   { background: var(--teal);  color: #fff; }
+.pipe-step .step-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--navy);
+  text-align: center;
+  max-width: 80px;
+}
+.pipe-step.active .step-name { color: #c57c00; }
+.pipe-step.orch .step-name   { color: var(--teal); }
+
+.pipeline-detail {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 12px;
+  padding: 24px 28px;
+  min-height: 120px;
+}
+.pipeline-detail h4 { font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+.pipeline-detail p  { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+.pipeline-detail ul { padding-left: 18px; }
+.pipeline-detail li { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+.pipeline-detail code {
+  background: var(--mid);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 12.5px;
+  color: var(--navy);
+  font-family: 'DM Mono', monospace;
+}
+.dual-enforce {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.de-card {
+  flex: 1;
+  min-width: 200px;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+}
+.de-card.vc  { background: #e8f0fb; border-left: 3px solid var(--navy); }
+.de-card.cbl { background: #fef9ec; border-left: 3px solid var(--amber); }
+.de-card strong { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.de-card.vc  strong { color: var(--navy); }
+.de-card.cbl strong { color: #7a4a00; }
+
+/* ── OUTPUTS ─────────────────────────────────────────── */
+.outputs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.output-card {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.output-card .oc-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.output-card .oc-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.output-card .oc-desc {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.output-card.highlight {
+  border-color: var(--amber);
+  background: #fffbf0;
+}
+.output-card.highlight .oc-num { color: #c57c00; }
+.output-card.highlight .oc-title { color: #7a4a00; }
+
+/* ── BLUEPRINT DEMO ──────────────────────────────────── */
+.blueprint-demo {
+  background: var(--navy);
+  border-radius: 14px;
+  padding: 32px 36px;
+  color: var(--white);
+}
+.blueprint-demo h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--amber2);
+  margin-bottom: 6px;
+}
+.blueprint-demo .bd-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,.6);
+  margin-bottom: 24px;
+}
+.bd-steps {
+  display: flex;
+  gap: 0;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+.bd-step {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  padding: 16px 18px;
+  position: relative;
+}
+.bd-step + .bd-step { margin-left: 12px; }
+.bd-step .bds-num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: var(--amber2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.bd-step .bds-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+.bd-step .bds-desc {
+  font-size: 12.5px;
+  color: rgba(255,255,255,.6);
+  line-height: 1.5;
+}
+.bd-prompt {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #6ee7b7;
+  line-height: 1.6;
+}
+.bd-prompt .bd-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: rgba(255,255,255,.4);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.bd-outputs {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.bd-output-pill {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,.75);
+}
+
+/* ── DEMO FLOW ───────────────────────────────────────── */
+.demo-callout {
+  background: var(--navy);
+  color: var(--white);
+  border-radius: 14px;
+  padding: 28px 32px;
+}
+.demo-callout h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  margin-bottom: 6px;
+  color: var(--amber2);
+}
+.demo-callout .loan-meta {
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  margin-bottom: 20px;
+}
+.flow-tree {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 2;
+  color: rgba(255,255,255,.85);
+}
+.flow-tree .pass  { color: #6ee7b7; }
+.flow-tree .trig  { color: var(--amber2); }
+.flow-tree .head  { color: #fff; font-weight: 700; }
+.flow-tree .info  { color: rgba(255,255,255,.5); font-size: 11.5px; margin-left: 6px; }
+
+.grounding-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.grounding-card {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.grounding-card .gc-tag {
+  font-weight: 700;
+  font-size: 12.5px;
+  font-family: monospace;
+  padding: 2px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.tag-sg   { background: #6ee7b7; color: #064e3b; }
+.tag-inf  { background: var(--amber2); color: #7a3600; }
+.tag-ph   { background: #fca5a5; color: #7f1d1d; }
+.grounding-card p { font-size: 13px; color: rgba(255,255,255,.65); }
+
+/* ── RULES TABLE ─────────────────────────────────────── */
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.dot-tandem { background: #93c5fd; }
+.dot-cobol  { background: #fcd34d; }
+.dot-ext    { background: #86efac; }
+
+.rules-table-wrap { overflow-x: auto; }
+table.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+table.rules-table th {
+  background: var(--navy);
+  color: var(--white);
+  font-weight: 600;
+  padding: 11px 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+table.rules-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mid);
+  vertical-align: top;
+}
+table.rules-table tr:last-child td { border-bottom: none; }
+table.rules-table tr:hover td { background: #f0f4fb; }
+
+.row-tandem td:first-child { border-left: 3px solid #3b82f6; }
+.row-cobol  td:first-child { border-left: 3px solid var(--amber); }
+.row-ext    td:first-child { border-left: 3px solid var(--teal); }
+.func-group-row td {
+  background: var(--mid);
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--navy);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-top: 2px solid var(--navy);
+}
+.rule-id {
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.row-tandem .rule-id { color: #1d4ed8; }
+.row-cobol  .rule-id { color: #92400e; }
+.row-ext    .rule-id { color: var(--teal); }
+.src-ref {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--mid);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: var(--navy);
+}
+.integ-badge {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+.badge-tandem { background: var(--tag-tandem); color: var(--tag-tandem-text); }
+.badge-cobol  { background: var(--tag-cobol);  color: var(--tag-cobol-text); }
+.badge-ext    { background: var(--tag-ext);    color: var(--tag-ext-text); }
+
+/* ── AGENTS vs SKILLS CALLOUT ────────────────────────── */
+.vs-box {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--mid);
+  margin-top: 24px;
+}
+.vs-side {
+  flex: 1;
+  padding: 20px 22px;
+}
+.vs-side.agents { background: #edf2fb; }
+.vs-side.skills { background: var(--light); }
+.vs-side h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.vs-side.agents h4 { color: var(--navy); }
+.vs-side.skills h4 { color: var(--muted); }
+.vs-side ul { padding-left: 16px; }
+.vs-side li { font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+.vs-side.agents li { color: var(--text); }
+.vs-divider {
+  width: 3px;
+  background: var(--mid);
+  flex-shrink: 0;
+}
+
+/* ── FOOTER ──────────────────────────────────────────── */
+footer {
+  background: var(--navy);
+  color: rgba(255,255,255,.45);
+  text-align: center;
+  font-size: 12px;
+  padding: 18px 20px;
+  margin-top: 32px;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 700px) {
+  header { padding: 0 16px; flex-wrap: wrap; gap: 8px; min-height: auto; padding-top: 12px; padding-bottom: 12px; }
+  .hero { padding: 36px 16px 32px; }
+  .hero h2 { font-size: 24px; }
+  .section { padding: 32px 16px; }
+  .bd-steps { flex-direction: column; }
+  .bd-step + .bd-step { margin-left: 0; margin-top: 10px; }
+  .vs-box { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <span class="logo-pill">Capgemini</span>
+    <h1>RE Agent Pack — TrackAll Loan Maintenance</h1>
+  </div>
+  <div class="header-meta">
+    Assurant / TrackAll &nbsp;·&nbsp; Phase 1<br>
+    VS Code GitHub Copilot Pipeline
+  </div>
+</header>
+
+<!-- HERO — 3-STEP APPROACH -->
+<div class="hero">
+  <h2>Legacy modernisation in <span>3 repeatable steps.</span><br>Any codebase. Same pipeline.</h2>
+  <p style="color:rgba(255,255,255,.7);font-size:15px;max-width:600px;margin:12px auto 0;">
+    We applied this to TrackAll's VC++ / Tandem / COBOL stack.
+    The same 3 steps work for any client's legacy codebase.
+  </p>
+
+  <div class="hero-cards">
+    <div class="hero-card">
+      <div class="hc-num">01</div>
+      <div class="hc-title">Build the Legacy App</div>
+      <div class="hc-label">Created a sample VC++ / MFC application with Claude Code. 3 dialogs (Search, Add, Modify). Real Tandem integration (LSS001T routing, TKA900/901/902/920/AIP930, RataBase, 14E EDI).</div>
+      <div class="hc-arrow">→</div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-num">02</div>
+      <div class="hc-title">Create the Agents</div>
+      <div class="hc-label">Built 9 reverse-engineering agents with Claude Code. Plain .md files. Project-agnostic — drop into any codebase and run.</div>
+      <div class="hc-arrow">→</div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-num">03</div>
+      <div class="hc-title">Run the Pipeline</div>
+      <div class="hc-label">Run each step in VS Code Copilot using the prompts in <code>pipeline/GUIDE.md</code>. Steps 0–8 run in sequence. 8 governed documents published. Step 9 (post-approval) generates the DDD scaffold.</div>
+    </div>
+  </div>
+
+  <div class="portability-note">
+    <strong>Portability:</strong> For any client — swap their legacy code into Step 1, reuse the agents from Step 2, run Step 3. The pipeline is the product.
+  </div>
+</div>
+
+
+<!-- SLIDE 2 — THE APPLICATION -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="slide-label"><span class="sl-num">SLIDE 2</span> The Application</div>
+  <div class="section-title">Loan Maintenance — VC++ / Tandem Integration</div>
+  <div class="section-sub">The LoanSearchDlg dialog and its integration chain — what the pipeline reads and reverse-engineers</div>
+  <hr class="divider"/>
+
+  <div class="arch-stack">
+
+    <div class="arch-layer layer-client">
+      <h3>VC++ MFC Thick Client &nbsp;·&nbsp; Loan Maintenance Dialogs</h3>
+      <p style="font-size:13px;color:var(--muted);margin-top:2px;">All loan business logic lives in C++ source. The rule-extractor scans this layer and extracts 25 rules across 3 dialogs.</p>
+      <div class="arch-items">
+        <span class="arch-item">LoanSearchDlg.cpp</span>
+        <span class="arch-item">LoanAddDlg.cpp</span>
+        <span class="arch-item">LoanModifyDlg.cpp</span>
+        <span class="arch-item">LoanRules.cpp</span>
+        <span class="arch-item">TMELibAdapter.cpp</span>
+        <span class="arch-item">RataBaseServiceAdapter.cpp</span>
+        <span class="arch-item">EDINotificationWriter.cpp</span>
+        <span class="arch-item">AuditLogger.cpp</span>
+      </div>
+      <p class="arch-note">Fields: LoanNumber (10 digits), BorrowerName, PropertyState &nbsp;·&nbsp; 182+ dialogs in full system</p>
+    </div>
+
+    <div class="arch-connector">
+      <div class="conn-line"></div>
+      <div class="conn-label">TME Framework &nbsp;—&nbsp; fgatetcp TLS 1.2 &nbsp;|&nbsp; mnemonic routing via LSS001T</div>
+      <div class="conn-line"></div>
+    </div>
+
+    <div class="arch-layer layer-tandem">
+      <h3>HP NonStop Tandem &nbsp;·&nbsp; COBOL Programs</h3>
+      <p style="font-size:13px;color:#7a5a00;margin-top:2px;">Each mnemonic in LSS001T resolves to one COBOL program. The dependency-mapper traces every call.</p>
+      <div class="arch-items">
+        <span class="arch-item">TKA900 — Loan Search</span>
+        <span class="arch-item">TKA901 — Loan Add</span>
+        <span class="arch-item">TKA902 — Loan Modify</span>
+        <span class="arch-item">TKA920 — 14E EDI Trigger</span>
+        <span class="arch-item">AIP930 — KY ISO Advisory</span>
+        <span class="arch-item">TKARB000 — RataBase Quote</span>
+      </div>
+      <p class="arch-note">HP NonStop COBOL &nbsp;·&nbsp; TAL Gateway entry &nbsp;·&nbsp; EXEC SQL against HP SQL/MP tables</p>
+    </div>
+
+    <div class="arch-connector">
+      <div class="conn-line"></div>
+      <div class="conn-label">HP SQL/MP &nbsp;·&nbsp; NonStop SQL engine</div>
+      <div class="conn-line"></div>
+    </div>
+
+    <div class="arch-layer layer-sql">
+      <h3>HP SQL/MP Tables &nbsp;·&nbsp; NonStop Database</h3>
+      <p style="font-size:13px;color:#0a5c55;margin-top:2px;">Schema columns drive business rules — CHAR lengths, DEFAULT values, and index types all matter.</p>
+      <div class="arch-items">
+        <span class="arch-item">LSS_LOAN_T</span>
+        <span class="arch-item">LSS_CYCLE_STEP_T</span>
+        <span class="arch-item">LSS001T (routing)</span>
+        <span class="arch-item">lender_target</span>
+      </div>
+      <p class="arch-note">293 tables total in full TrackAll system &nbsp;·&nbsp; CHAR fixed-width &nbsp;·&nbsp; zero-padded numerics</p>
+    </div>
+
+  </div>
+
+  <div class="callout-box">
+    <strong>25 business rules extracted across 3 dialogs (Search · Add · Modify)</strong> — input validation, premium rating gates, EDI eligibility checks, mnemonic routing, loan lifecycle constraints, and audit requirements. All code-grounded, all traceable to <code>file::function</code> citations.
+  </div>
+
+</div>
+</div>
+
+
+<!-- SLIDE 3 — AGENTS + PIPELINE -->
+<div class="section">
+  <div class="slide-label"><span class="sl-num">SLIDE 3</span> The Agents</div>
+  <div class="section-title">9-Step Pipeline — Step-by-Step in VS Code Copilot</div>
+  <div class="section-sub">Each step is a separate agent run using the prompts in <code>pipeline/GUIDE.md</code>. Click any step to see what it does.</div>
+  <hr class="divider"/>
+
+  <div class="pipeline-steps" id="pipe-steps">
+    <div class="pipe-step orch" data-step="8" onclick="showStep(8)">
+      <div class="step-num">⚙</div><div class="step-name">run guide</div>
+    </div>
+    <div class="pipe-step" data-step="0" onclick="showStep(0)">
+      <div class="step-num">0</div><div class="step-name">project-scanner</div>
+    </div>
+    <div class="pipe-step" data-step="1" onclick="showStep(1)">
+      <div class="step-num">1</div><div class="step-name">analysis-planner</div>
+    </div>
+    <div class="pipe-step" data-step="2" onclick="showStep(2)">
+      <div class="step-num">2</div><div class="step-name">screen-analyzer</div>
+    </div>
+    <div class="pipe-step active" data-step="3" onclick="showStep(3)">
+      <div class="step-num">3</div><div class="step-name">rule-extractor</div>
+    </div>
+    <div class="pipe-step" data-step="4" onclick="showStep(4)">
+      <div class="step-num">4</div><div class="step-name">dependency-mapper</div>
+    </div>
+    <div class="pipe-step" data-step="5" onclick="showStep(5)">
+      <div class="step-num">5</div><div class="step-name">grounding-reviewer</div>
+    </div>
+    <div class="pipe-step" data-step="6" onclick="showStep(6)">
+      <div class="step-num">7</div><div class="step-name">doc-publisher</div>
+    </div>
+    <div class="pipe-step" data-step="7" onclick="showStep(7)">
+      <div class="step-num">8</div><div class="step-name">pub-reviewer</div>
+    </div>
+  </div>
+
+  <div class="pipeline-detail" id="pipe-detail"></div>
+
+  <div class="vs-box">
+    <div class="vs-side agents">
+      <h4>These are Agents, not Skills</h4>
+      <ul>
+        <li>Each agent has a role, a persona, and multi-step reasoning</li>
+        <li>The analysis-planner <em>decides</em> what to run next based on coverage gaps</li>
+        <li>The grounding-reviewer <em>judges</em> rule grounding and stamps Review Priority</li>
+        <li>The publication-reviewer <em>issues</em> Go / No-go on the final 7 deliverables</li>
+        <li>Each step runs as a separate agent in VS Code Copilot — the human advances through steps using <code>pipeline/GUIDE.md</code></li>
+        <li>State is shared via <code>session_state.governance.md</code> — agents read it first every time</li>
+      </ul>
+    </div>
+    <div class="vs-divider"></div>
+    <div class="vs-side skills">
+      <h4>Skills would be…</h4>
+      <ul>
+        <li>Reusable functions called by agents (e.g. "parse a C++ file")</li>
+        <li>Stateless utilities with no persona</li>
+        <li>No decision-making — just execution</li>
+        <li>Examples: "extract function signatures", "format a markdown table"</li>
+        <li><em>Future:</em> we may extract reusable skills from these agents in Phase 1.5</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- SLIDE 3 continued — OUTPUTS -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="slide-label"><span class="sl-num">SLIDE 3</span> Outputs</div>
+  <div class="section-title">7 Governed Documents — Published in One Run</div>
+  <div class="section-sub">All derived from reverse-engineering artifacts. Nothing AI-invented reaches a client document without a grounding label and a publication Go / No-go.</div>
+  <hr class="divider"/>
+
+  <div class="outputs-grid">
+    <div class="output-card highlight">
+      <div class="oc-num">Doc 1 &nbsp;·&nbsp; Primary</div>
+      <div class="oc-title">Reverse-Engineered Business Requirements</div>
+      <div class="oc-desc">Subdomain registry, functional requirements by feature, business rules register with Review Priority flags. Business stakeholder audience.</div>
+    </div>
+    <div class="output-card">
+      <div class="oc-num">Doc 2 &nbsp;·&nbsp; Primary</div>
+      <div class="oc-title">Reverse-Engineered Technical Specification</div>
+      <div class="oc-desc">Same rules with <code>file::function</code> evidence, dependency flows, candidate API estimation, target state mapping. Developer audience.</div>
+    </div>
+    <div class="output-card highlight">
+      <div class="oc-num">Doc 5 &nbsp;·&nbsp; Primary</div>
+      <div class="oc-title">Architecture Flow</div>
+      <div class="oc-desc">7 Mermaid diagrams: Current State (VC++ → Tandem), Target State (Angular → .NET Core), business process flows, Legacy → Modern mapping.</div>
+    </div>
+    <div class="output-card highlight">
+      <div class="oc-num">Doc 6 &nbsp;·&nbsp; Forward Engineering</div>
+      <div class="oc-title">Modernization Blueprint</div>
+      <div class="oc-desc"><strong>Working app generator.</strong> TypeScript interfaces, C# controller stubs, SQL DDL, unit test scaffolds. Paste into Claude → get a running Angular + .NET Core app.</div>
+    </div>
+    <div class="output-card highlight">
+      <div class="oc-num">Doc 7 &nbsp;·&nbsp; Forward Engineering</div>
+      <div class="oc-title">API Taxonomy</div>
+      <div class="oc-desc">Alam's Domain API Taxonomy Template format. Feeds the DGT tool directly. Columns: Domain, Sub-Domain, ControllerName, ResourceModel, Operation, RequestType, Path…</div>
+    </div>
+    <div class="output-card">
+      <div class="oc-num">Doc 3</div>
+      <div class="oc-title">Rendering Handoff</div>
+      <div class="oc-desc">Combined prompt file. Paste into any AI (Claude, ChatGPT, Gemini) to generate 4 polished Word documents.</div>
+    </div>
+    <div class="output-card">
+      <div class="oc-num">Doc 4</div>
+      <div class="oc-title">Publication Contract</div>
+      <div class="oc-desc">Machine-readable JSON manifest with grounding stats and functional area structure. External tooling reads this without parsing markdown.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+
+<!-- SLIDE 4 — BLUEPRINT DEMO -->
+<div class="section">
+  <div class="slide-label"><span class="sl-num">SLIDE 4</span> Blueprint Demo</div>
+  <div class="section-title">From Reverse Engineering to a Running App</div>
+  <div class="section-sub">The Modernization Blueprint is the bridge between the RE outputs and forward engineering. One paste. Working code.</div>
+  <hr class="divider"/>
+
+  <div class="blueprint-demo">
+    <h3>Live Demo — Loan Maintenance Blueprint → Running App</h3>
+    <div class="bd-sub">Feed the blueprint to Claude or GPT-4o. Get a compilable Angular + .NET Core + Azure SQL app with unit tests.</div>
+
+    <div class="bd-steps">
+      <div class="bd-step">
+        <div class="bds-num">Step 1</div>
+        <div class="bds-title">Open the Blueprint</div>
+        <div class="bds-desc">Open <code>Forward_Engineering_Modernization_Blueprint.md</code> from <code>docs/final_output/</code></div>
+      </div>
+      <div class="bd-step">
+        <div class="bds-num">Step 2</div>
+        <div class="bds-title">Paste into AI</div>
+        <div class="bds-desc">Copy the full document. Paste into Claude or GPT-4o with the prompt below.</div>
+      </div>
+      <div class="bd-step">
+        <div class="bds-num">Step 3</div>
+        <div class="bds-title">Get Running Code</div>
+        <div class="bds-desc">Receive Angular component, .NET Core controller, SQL schema, and xUnit test stubs — all compilable.</div>
+      </div>
+    </div>
+
+    <div class="bd-prompt">
+      <div class="bd-label">Prompt to use</div>
+      "Generate a working Loan Maintenance application using Angular 17 + .NET Core 8 Web API + Azure SQL.<br>
+      Use the TypeScript interfaces, C# controller stubs, SQL DDL, and unit test skeletons in this blueprint<br>
+      as your starting point. Wire the Angular service to the .NET API. Return working, compilable code."
+    </div>
+
+    <div class="bd-outputs">
+      <span class="bd-output-pill">LoanSearchComponent.ts</span>
+      <span class="bd-output-pill">LoanController.cs</span>
+      <span class="bd-output-pill">CREATE TABLE LSS_LOAN_T (SQL DDL)</span>
+      <span class="bd-output-pill">LoanSearch_Tests.cs (xUnit)</span>
+      <span class="bd-output-pill">LoanService.cs</span>
+      <span class="bd-output-pill">ILoanRepository.cs</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- DETAIL — LOAN MAINTENANCE RULES -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="slide-label"><span class="sl-num">DETAIL</span> Business Rules</div>
+  <div class="section-title">25 Extracted Loan Maintenance Rules — with Integration Derivation</div>
+  <div class="section-sub">Each rule is code-grounded with a <code>file::function</code> citation. Review Priority flags which rules business stakeholders should read closely. Rules R-L-001–012 (Search), R-L-013–020 (Add Loan), R-L-021–025 (Modify Loan).</div>
+  <hr class="divider"/>
+
+  <div style="margin-bottom:16px;padding:12px 16px;background:#fffbf0;border-left:4px solid var(--amber);border-radius:0 8px 8px 0;font-size:13px;color:var(--text);">
+    <strong>Walkthrough sample:</strong> Loan Maintenance is the only subdomain in scope for this run. The pipeline is project-agnostic — point it at any client codebase and the same agents extract that subdomain's rules.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot dot-tandem"></div>Tandem schema column</div>
+    <div class="legend-item"><div class="legend-dot dot-cobol"></div>COBOL program logic</div>
+    <div class="legend-item"><div class="legend-dot dot-ext"></div>External service / config</div>
+  </div>
+
+  <div class="rules-table-wrap">
+  <table class="rules-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Business Rule</th>
+        <th>Source Location</th>
+        <th>Integration Derivation</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr class="func-group-row">
+        <td colspan="4">Loan Search &nbsp;·&nbsp; Input Validation</td>
+      </tr>
+
+      <tr class="row-cobol">
+        <td><span class="rule-id">R-L-001</span></td>
+        <td>At least one search criterion required (loan number <em>or</em> borrower name)</td>
+        <td><span class="src-ref">LoanRules.cpp::ValidateLoanForSearch</span></td>
+        <td>
+          <span class="integ-badge badge-cobol">COBOL: TKA900</span><br>
+          TKA900 paragraph <code>2000-VALIDATE-INPUT</code> returns STATUS-CODE '9001' on empty request, blocking an unrestricted LSS_LOAN_T scan. UI layer mirrors this check — dual-layer enforcement.
+        </td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-002</span></td>
+        <td>Loan number must be exactly 10 digits</td>
+        <td><span class="src-ref">LoanRules.cpp::ValidateLoanForSearch</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_LOAN_T</span><br>
+          <code>LOAN_NUM CHAR(10) NOT NULL</code> — a shorter value misses the SQL equality index; a longer value is rejected at TME serialisation before the fgatetcp send.
+        </td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-003</span></td>
+        <td>Loan number must contain digits only</td>
+        <td><span class="src-ref">LoanRules.cpp::ValidateLoanForSearch</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_LOAN_T</span><br>
+          LOAN_NUM is a zero-padded numeric identifier. The Tandem SQL index is built on the numeric character set — alpha characters indicate a data entry error and would bypass index lookup.
+        </td>
+      </tr>
+
+      <tr class="func-group-row">
+        <td colspan="4">Loan Search &nbsp;·&nbsp; Premium Rating</td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-004</span></td>
+        <td>QUOTE_REQD='Y' on the cycle step triggers a RataBase premium quote before display</td>
+        <td><span class="src-ref">LoanRules.cpp::RequiresQuote</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_CYCLE_STEP_T</span><br>
+          <code>QUOTE_REQD CHAR(1) DEFAULT 'N'</code> in LSS_CYCLE_STEP_T. TKA900 joins this table on CLIENT_ID and returns the flag in the LOAN_SEARCH response payload.
+        </td>
+      </tr>
+
+      <tr class="row-ext">
+        <td><span class="rule-id">R-L-005</span></td>
+        <td>Property state must be in the 23-state approved carrier list for RataBase rating</td>
+        <td><span class="src-ref">LoanRules.cpp::EnforceCarrierCoverage</span></td>
+        <td>
+          <span class="integ-badge badge-ext">RataBase Config</span><br>
+          RataBase has no configured rates outside the approved state list. Loans in unapproved states require manual underwriting — this rule prevents a failed rating call and routes the operator correctly.
+        </td>
+      </tr>
+
+      <tr class="row-ext">
+        <td><span class="rule-id">R-L-006</span></td>
+        <td>Kentucky requires an ISO advisory pre-call (AIP930) before RataBase rating</td>
+        <td><span class="src-ref">RataBaseServiceAdapter.cpp::GetQuote</span></td>
+        <td>
+          <span class="integ-badge badge-ext">Tandem: AIP930</span><br>
+          Mnemonic <code>KY_ISO_QUERY → AIP930</code> via TME. RataBase rejects KY submissions without an ISO context block (fire class, territory, construction type).
+        </td>
+      </tr>
+
+      <tr class="row-ext">
+        <td><span class="rule-id">R-L-011</span></td>
+        <td>Property value must be greater than zero before a RataBase rating request is submitted</td>
+        <td><span class="src-ref">RataBaseServiceAdapter.cpp::GetQuote</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_LOAN_T</span><br>
+          <code>PROPERTY_VALUE</code> defaults to 0 in the schema. The rating adapter blocks zero or negative values before any quote request.
+        </td>
+      </tr>
+
+      <tr class="func-group-row">
+        <td colspan="4">Loan Search &nbsp;·&nbsp; EDI Notification</td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-007</span></td>
+        <td>EDI_FLAG must be 'Y' on the loan record to generate a 14E notification</td>
+        <td><span class="src-ref">LoanRules.cpp::EnforceEdiEligibility</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_LOAN_T</span><br>
+          <code>EDI_FLAG CHAR(1) DEFAULT 'N'</code>. Clients not enrolled in EDI must not receive outbound 14E.
+        </td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-008</span></td>
+        <td>Instant Issue cycle type suppresses 14E EDI output</td>
+        <td><span class="src-ref">LoanRules.cpp::EnforceEdiEligibility</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS_CYCLE_STEP_T</span><br>
+          <code>CYCLE_TYPE = 'INSTANT_ISSUE'</code> suppressed — would create a duplicate at the servicer's EDI processor.
+        </td>
+      </tr>
+
+      <tr class="row-ext">
+        <td><span class="rule-id">R-L-009</span></td>
+        <td>Form ID must be registered in lender_target before writing a 14E record</td>
+        <td><span class="src-ref">LoanRules.cpp::EnforceEdiEligibility</span></td>
+        <td>
+          <span class="integ-badge badge-ext">lender_target table</span><br>
+          An unrecognised form ID produces a 14E record the downstream EDI processor cannot route.
+        </td>
+      </tr>
+
+      <tr class="row-ext">
+        <td><span class="rule-id">R-L-012</span></td>
+        <td>FCI_CODE prefix 'BK' uses Black Knight fixed-width 14E format; all others use SSP delimited</td>
+        <td><span class="src-ref">EDINotificationWriter.cpp::Write14ERecord</span></td>
+        <td>
+          <span class="integ-badge badge-ext">EDI: Format routing</span><br>
+          Format selection determines which downstream servicer processor handles the outbound record.
+        </td>
+      </tr>
+
+      <tr class="row-cobol">
+        <td><span class="rule-id">R-L-013</span></td>
+        <td>A suppressed or failed 14E notification must not block the operator from viewing the selected loan result</td>
+        <td><span class="src-ref">LoanSearchDlg.cpp::ProcessLoanResult</span></td>
+        <td>
+          <span class="integ-badge badge-cobol">State transition</span><br>
+          <code>Write14ERecord()</code> returning <code>FALSE</code> does not interrupt the display flow.
+        </td>
+      </tr>
+
+      <tr class="row-cobol">
+        <td><span class="rule-id">R-L-014</span></td>
+        <td>Each 14E dispatch must generate at least one loan audit entry with full context</td>
+        <td><span class="src-ref">LoanRules.cpp::BuildLoanAuditMessages</span></td>
+        <td>
+          <span class="integ-badge badge-cobol">Audit rule</span><br>
+          Audit messages built before dispatch and included in the TME request payload sent to <code>14E_NOTIFY → TKA920</code>.
+        </td>
+      </tr>
+
+      <tr class="func-group-row">
+        <td colspan="4">Loan Search &nbsp;·&nbsp; Integration Gateway</td>
+      </tr>
+
+      <tr class="row-tandem">
+        <td><span class="rule-id">R-L-010</span></td>
+        <td>TME mnemonic must be registered in LSS001T before a message can be sent</td>
+        <td><span class="src-ref">TMELibAdapter.cpp::SendMessage</span></td>
+        <td>
+          <span class="integ-badge badge-tandem">Tandem: LSS001T</span><br>
+          <code>MNEMONIC → PROGRAM_NM</code> mapping loaded from LSS001T at startup. An unmapped mnemonic is a configuration error requiring a Tandem DBA fix.
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+
+
+<!-- DETAIL — WALKTHROUGH FLOW -->
+<div class="section">
+  <div class="slide-label"><span class="sl-num">DETAIL</span> Walkthrough Flow</div>
+  <div class="section-title">What Happens When the Pipeline Processes a Loan</div>
+  <div class="section-sub">Every rule fires, every integration is traced — all captured in the generated documents</div>
+  <hr class="divider"/>
+
+  <div class="demo-callout">
+    <h3>Loan 0000100001 — Anderson, Robert</h3>
+    <div class="loan-meta">State: KY &nbsp;·&nbsp; Coverage: Mortgage &nbsp;·&nbsp; STANDARD cycle &nbsp;·&nbsp; QUOTE_REQD=Y &nbsp;·&nbsp; EDI_FLAG=Y &nbsp;·&nbsp; FCI: BK-0042</div>
+
+    <div class="flow-tree">
+<span class="head">OnBnClickedSearch</span>
+├─ <span class="pass">R-L-001 ✓</span>  <span class="info">loan number present — at least one criterion met</span>
+├─ <span class="pass">R-L-002 ✓</span>  <span class="info">0000100001 is exactly 10 characters</span>
+├─ <span class="pass">R-L-003 ✓</span>  <span class="info">all digits — zero-padded numeric identifier</span>
+└─ <span class="trig">CTMELibAdapter::SendMessage("LOAN_SEARCH")</span>
+       └─ <span class="info">routes via LSS001T → TKA900 (EXEC SQL → LSS_LOAN_T JOIN LSS_CYCLE_STEP_T)</span>
+
+<span class="head">ProcessLoanResult</span>
+├─ <span class="trig">R-L-004 → QUOTE_REQD='Y'  triggers RataBase quote</span>
+│   ├─ <span class="pass">R-L-005 ✓</span>  <span class="info">KY is in 23-state approved list</span>
+│   ├─ <span class="trig">R-L-006 →</span>  <span class="info">KY ISO pre-call to AIP930 (mnemonic KY_ISO_QUERY)</span>
+│   │        <span class="info">└─ returns: FIRE_CLASS=3 · CONSTRUCTION=FRAME · TERRITORY=KY-CENTRAL</span>
+│   └─ <span class="pass">RataBase quote ✓</span>  <span class="info">Annual premium: $1,282.50  (rate 0.0045 × $285,000)</span>
+└─ EDINotificationWriter::Write14ERecord
+    ├─ <span class="pass">R-L-007 ✓</span>  <span class="info">EDI_FLAG='Y' — client enrolled in EDI</span>
+    ├─ <span class="pass">R-L-008 ✓</span>  <span class="info">STANDARD cycle — not INSTANT_ISSUE</span>
+    ├─ <span class="pass">R-L-009 ✓</span>  <span class="info">LT-F100 registered in lender_target</span>
+    ├─ <span class="pass">R-L-010 ✓</span>  <span class="info">14E_NOTIFY in LSS001T → TKA920</span>
+    └─ <span class="trig">CTMELibAdapter::SendMessage("14E_NOTIFY")</span>  <span class="info">→ TKA920 (Black Knight BK layout v2.3)</span>
+    </div>
+
+    <div class="grounding-row">
+      <div class="grounding-card">
+        <span class="gc-tag tag-sg">[SG]</span>
+        <p>Code-grounded — direct evidence in <code style="color:rgba(255,255,255,.7)">if</code> statements in source. Reliable for FRD.</p>
+      </div>
+      <div class="grounding-card">
+        <span class="gc-tag tag-inf">[inferred]</span>
+        <p>Reasoned from context — flagged for reviewer to confirm against production schema.</p>
+      </div>
+      <div class="grounding-card">
+        <span class="gc-tag tag-ph">[placeholder]</span>
+        <p>Sample-only values invented for the demo. The publication-reviewer blocks these from reaching the client FRD.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;padding:16px 20px;background:var(--mid);border-radius:8px;font-size:13px;color:var(--muted);">
+    <strong style="color:var(--navy);">Loan 2 — Hernandez / TX / INSTANT_ISSUE</strong><br>
+    QUOTE_REQD='N' (no RataBase call) · INSTANT_ISSUE cycle blocks 14E per R-L-008 ·
+    EDI_FLAG='Y' but suppressed before reaching SendMessage — rule extracted and surfaced correctly.
+  </div>
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  RE Agent Pack &nbsp;·&nbsp; Phase 1 &nbsp;·&nbsp; TrackAll / Assurant &nbsp;·&nbsp; Capgemini
+</footer>
+
+<script>
+const stepData = [
+  {
+    title: "Step 0 — project-scanner",
+    body: `<p>Auto-generates <code>RE_AGENTS_CONFIG.md</code> by scanning the workspace. Single config file that every other agent reads first. On re-run, performs a <strong>selective merge</strong> — source file list always refreshed, manually curated fields preserved.</p>
+      <p>Also initialises <code>session_state.governance.md</code> — the shared state file every agent reads first to find open ambiguities and the last completed step.</p>`
+  },
+  {
+    title: "Step 1 — analysis-planner",
+    body: `<p>Reads all governance artifacts. Produces a recommended run order, highlights coverage gaps, verifies source file checksums against the last run. <strong>Does not chain to other agents</strong> — keeps the human in control of what runs next.</p>
+      <p>Three-priority recommendation stack: (1) checksum diff override, (2) pipeline sequence from session_state, (3) coverage percentages fallback.</p>`
+  },
+  {
+    title: "Step 2 — screen-analyzer",
+    body: `<p>Analyses MFC dialog files to build:</p><ul><li>Screen inventory (dialog name, purpose, user type)</li><li>Field dictionary (every DDX control, type, validation hint)</li><li>Screen-to-action mapping (button click → method)</li></ul><p>Output lands in <code>artifacts/generated_screen_inventory.md</code> and <code>field_dictionary.md</code>.</p>`
+  },
+  {
+    title: "Step 3 — rule-extractor ★",
+    body: `<p>The core extraction step. Scans all <code>*Rules.cpp</code> and adapter files for keyword-triggered function bodies:</p>
+      <ul>
+        <li>Function name triggers: <code>Validate</code> · <code>Enforce</code> · <code>Require</code> · <code>Block</code> · <code>Check</code></li>
+        <li>Body triggers: <code>forbidden</code> · <code>must</code> · <code>cannot</code> · <code>reject</code> · <code>audit</code></li>
+      </ul>
+      <p>Each rule card: grounding label, <code>file::function</code> citation, integration derivation, Functional Area tag, Review Priority placeholder. Dedup check prevents duplicate cards.</p>
+      <div class="dual-enforce">
+        <div class="de-card vc">
+          <strong>VC++ UI layer (LoanRules.cpp)</strong>
+          <code>ValidateLoanForSearch</code> — blocks empty search before TME call.
+        </div>
+        <div class="de-card cbl">
+          <strong>COBOL server layer (TKA900)</strong>
+          <code>2000-VALIDATE-INPUT</code> — STATUS-CODE '9001' blocks unrestricted LSS_LOAN_T scan. Same rule, different layer.
+        </div>
+      </div>
+      <p style="margin-top:12px;">Both instances surfaced. The traceability matrix shows <strong>dual-layer enforcement</strong> — a real architectural finding that goes into the FRD.</p>`
+  },
+  {
+    title: "Step 4 — dependency-mapper",
+    body: `<p>Traces the full call chain from each UI action to the backend:</p><ul><li>Button click → MFC handler → Service/Rules method → Adapter → TME mnemonic → Tandem program</li><li>Produces <code>traceability_matrix.md</code>, <code>screen_action_api_estimation.md</code>, <code>service_decomposition.md</code></li><li>Estimates candidate .NET Core API endpoints for each traced action</li></ul>`
+  },
+  {
+    title: "Step 5 — grounding-reviewer",
+    body: `<p>Verifies grounding quality and stamps Review Priority on every rule:</p>
+    <ul>
+      <li><strong>Evidence resolution check:</strong> confirms every <code>file::function</code> citation is real — file is in source list, symbol is in the file. If not, downgrades grounding to <code>unresolved</code>.</li>
+      <li><strong>Plain-English clarity check:</strong> rejects rules whose stakeholder text leaks code identifiers like <code>QUOTE_REQD</code>.</li>
+      <li><strong>Review Priority stamp:</strong> each rule becomes either <strong>Priority</strong> (non-code-grounded, ambiguous, or with evidence gaps) or <strong>Standard</strong> (code-grounded, no gaps). Business reviewers read Priority rules closely; Standard rules can be skimmed.</li>
+    </ul>`
+  },
+  {
+    title: "Step 7 — document-publisher",
+    body: `<p>Generates <strong>7 output documents</strong> in a single run:</p>
+    <ul>
+      <li><code>Reverse_Engineered_Business_Requirements.md</code> — subdomain registry, FR by subdomain, current-state system context diagram, business rules with Review Priority</li>
+      <li><code>Reverse_Engineered_Technical_Specification.md</code> — same rules with evidence citations for developers</li>
+      <li><code>Architecture_Flow.md</code> — Current State system context (VC++ → Tandem) + Target State (Angular → .NET Core) + 5 more Mermaid diagrams</li>
+      <li><code>Forward_Engineering_Modernization_Blueprint.md</code> — TypeScript interfaces, C# stubs, SQL DDL, unit test scaffolds — paste into AI for running code</li>
+      <li><code>Forward_Engineering_API_Taxonomy.md</code> — Alam's taxonomy template format, feeds DGT tool</li>
+      <li><code>Rendering_Handoff.md</code> — paste into any AI to generate 4 polished Word documents</li>
+      <li><code>Publication_Contract.json</code> — machine-readable manifest for external tooling</li>
+    </ul>`
+  },
+  {
+    title: "Step 8 — publication-reviewer",
+    body: `<p>Issues Go / No-go on the 7 final-output documents before they leave the repo:</p>
+    <ul>
+      <li>Reads <code>Publication_Contract.json</code> grounding stats; blocks if any <code>[placeholder]</code> appears unqualified in client-facing output.</li>
+      <li>Verifies BRD Section 2.4 System Context shows ONLY legacy components.</li>
+      <li>Verifies Architecture Flow Section 1.2 Target State shows ONLY modern components.</li>
+      <li>Reports the post-Go handover guide — what to do with each of the 7 deliverables.</li>
+      <li><em>No in-repo approval step — the Word documents are the business review artifact.</em></li>
+    </ul>`
+  },
+  {
+    title: "Run Guide — pipeline/GUIDE.md",
+    body: `<p>The step-by-step run guide. Each step is a separate agent invocation in VS Code Copilot — copy the prompt, select the agent, run it, review the output, then advance to the next step.</p>
+    <ul>
+      <li><strong>Full prompts</strong> for every step — copy-paste ready</li>
+      <li><strong>Reset commands</strong> — <code>--governance</code> (replay Step 5), <code>--full</code> (full rerun), <code>--save-as-baseline</code> (checkpoint your project)</li>
+      <li><strong>Fast-lane option</strong> — Steps 2–4 can overlap in separate Copilot chats for experienced teams</li>
+      <li><strong>Step 7 guidance</strong> — run document-publisher standalone in a fresh chat for best output quality</li>
+      <li><strong>Deliverable index</strong> — what each of the 7 files is for and who receives it</li>
+    </ul>
+    <p style="margin-top:10px;font-size:13px;color:var(--muted);">Human-in-the-loop between steps is a feature, not a limitation — it's where your SME confirms coverage before moving forward.</p>`
+  }
+];
+
+function showStep(idx) {
+  document.querySelectorAll('.pipe-step').forEach((el) => {
+    el.classList.remove('active');
+  });
+  const steps = document.querySelectorAll('.pipe-step');
+  // map visual index: run-guide is the last entry in stepData (index 8) but appears first in the HTML pipeline (visual index 0)
+  // visual order in HTML: orch(8), 0, 1, 2, 3, 4, 5, 6, 7
+  const stateMap = [8, 0, 1, 2, 3, 4, 5, 6, 7];
+  const visualIdx = stateMap.indexOf(idx);
+  if (visualIdx >= 0) steps[visualIdx].classList.add('active');
+
+  const d = stepData[idx];
+  if (!d || !d.title) return;
+  document.getElementById('pipe-detail').innerHTML = `<h4>${d.title}</h4>${d.body}`;
+}
+
+// init on load — show run guide
+showStep(8);
+</script>
+</body>
+</html>

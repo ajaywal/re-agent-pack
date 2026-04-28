@@ -1,0 +1,38 @@
+# Visual Studio build output
+vs-project/bin/
+vs-project/obj/
+vs-project/.vs/
+
+# VS user-specific files
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+.vs/
+
+# Compiled binaries
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Windows Zone.Identifier sidecar files
+*:Zone.Identifier
+
+# Runtime-generated RE Agent Pack files (baseline copies in agent-flow/baseline/ are committed)
+artifacts/session_state.governance.md
+artifacts/source_checksums.governance.md
+artifacts/source_checksums_prev.governance.md
+docs/final_output/
+
+# Python virtualenvs (local development only — never distribute)
+.venv/
+venv/
+__pycache__/
+*.pyc

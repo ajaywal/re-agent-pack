@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RE Agent Pack — Installation &amp; Run Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:   #0c2554;
+  --navy2:  #163a7a;
+  --amber:  #f0a500;
+  --amber2: #ffc542;
+  --teal:   #0d7377;
+  --green:  #1a7a4a;
+  --light:  #f5f7fb;
+  --mid:    #e8ecf5;
+  --white:  #ffffff;
+  --text:   #1a2540;
+  --muted:  #5c6b8a;
+  --code-bg: #1e2d4a;
+  --code-text: #a8d8ea;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--light);
+  line-height: 1.6;
+}
+
+/* ── HEADER ─────────────────────────────────────────── */
+header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+.header-brand { display: flex; align-items: center; gap: 14px; }
+.header-brand .logo-pill {
+  background: var(--amber);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: .5px;
+}
+.header-brand h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--white);
+}
+.header-meta {
+  font-size: 12px;
+  color: rgba(255,255,255,.55);
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* ── HERO ────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--navy2) 0%, var(--navy) 100%);
+  color: var(--white);
+  padding: 52px 40px 44px;
+  text-align: center;
+}
+.hero h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  font-weight: 400;
+  margin-bottom: 14px;
+  line-height: 1.25;
+}
+.hero h2 span { color: var(--amber2); }
+.hero p {
+  color: rgba(255,255,255,.7);
+  font-size: 16px;
+  max-width: 600px;
+  margin: 0 auto 28px;
+}
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.stat-card {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  padding: 16px 24px;
+  min-width: 130px;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--amber2);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 12px;
+  color: rgba(255,255,255,.6);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* ── SHARED LAYOUT ───────────────────────────────────── */
+.section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 44px 40px;
+}
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.section-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.divider {
+  border: none;
+  border-top: 2px solid var(--mid);
+  margin-bottom: 28px;
+}
+
+/* ── PREREQS ─────────────────────────────────────────── */
+.prereq-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.prereq-card {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.prereq-card .pc-icon {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.prereq-card strong {
+  display: block;
+  font-size: 14px;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.prereq-card p {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ── INSTALL ─────────────────────────────────────────── */
+.install-block {
+  background: var(--code-bg);
+  border-radius: 10px;
+  padding: 22px 26px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.install-block .ib-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: rgba(255,255,255,.4);
+  margin-bottom: 8px;
+}
+.install-block code {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: var(--code-text);
+  display: block;
+  line-height: 1.8;
+}
+.install-block code .comment { color: rgba(255,255,255,.3); }
+.install-block code .cmd { color: #a8d8ea; }
+.install-block code .arg { color: var(--amber2); }
+.install-block code .out { color: #6ee7b7; }
+
+.install-what {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+.install-what h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+.install-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+.install-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+}
+.install-item .ii-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.install-item .ii-path {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── CONFIG ──────────────────────────────────────────── */
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.config-field {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 18px 20px;
+  border-left: 3px solid var(--amber);
+}
+.config-field.cf-optional { border-left-color: var(--teal); }
+.config-field .cf-key {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.config-field .cf-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.config-field p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.config-note {
+  background: #fff8e6;
+  border: 1px solid var(--amber2);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #7a4e00;
+  margin-top: 16px;
+}
+
+/* ── PIPELINE STEPS ──────────────────────────────────── */
+.steps-list { list-style: none; }
+.step-item {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s;
+}
+.step-header:hover { background: var(--light); }
+.step-header.open { background: var(--navy); color: var(--white); }
+.step-num-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--mid);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.step-header.open .step-num-badge { background: var(--amber); color: var(--navy); }
+.step-header-text { flex: 1; }
+.step-header-text .sh-agent {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--amber);
+  font-weight: 600;
+}
+.step-header.open .sh-agent { color: var(--amber2); }
+.step-header-text .sh-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.step-header.open .sh-title { color: var(--white); }
+.step-chevron {
+  font-size: 18px;
+  color: var(--muted);
+  transition: transform .2s;
+}
+.step-header.open .step-chevron { transform: rotate(180deg); color: rgba(255,255,255,.6); }
+
+.step-body {
+  display: none;
+  padding: 0 22px 22px;
+  border-top: 1px solid var(--mid);
+}
+.step-body.visible { display: block; }
+
+.step-body .sb-prompt-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 18px 0 8px;
+  padding: 6px 12px;
+  background: var(--amber);
+  border-radius: 4px;
+  display: inline-block;
+  letter-spacing: .3px;
+}
+.step-body .sb-prompt {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--code-text);
+  position: relative;
+}
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: rgba(255,255,255,.1);
+  border: none;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,.6);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+.copy-btn:hover { background: rgba(255,255,255,.2); color: white; }
+.copy-btn.copied { color: #6ee7b7; }
+
+.step-body .sb-output-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+.step-body .sb-output {
+  font-size: 13px;
+  color: var(--text);
+}
+.step-body .sb-output ul {
+  padding-left: 18px;
+  margin-top: 6px;
+}
+.step-body .sb-output li { margin-bottom: 4px; }
+.step-body .sb-output code {
+  background: var(--mid);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--navy);
+}
+
+.step-body .sb-approval {
+  background: #fff8e6;
+  border: 1px solid var(--amber2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.step-body .sb-approval strong { color: #7a4e00; }
+
+.approval-keys {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.ak {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+.ak kbd {
+  background: var(--navy);
+  color: var(--white);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── ARTIFACT MAP ────────────────────────────────────── */
+.artifact-map {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.artifact-group {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+.artifact-group h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--mid);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.artifact-group ul { list-style: none; }
+.artifact-group li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--light);
+}
+.artifact-group li:last-child { border-bottom: none; }
+.ag-step {
+  background: var(--mid);
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ag-step.gov { background: #fef3c7; color: #92400e; }
+.ag-step.final { background: #dcfce7; color: #166534; }
+
+/* ── RESET GUIDE ─────────────────────────────────────── */
+.reset-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.reset-card {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.reset-card .rc-header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 14px 18px;
+}
+.reset-card .rc-header .rc-flag {
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--amber2);
+  font-weight: 700;
+}
+.reset-card .rc-header .rc-title {
+  font-size: 13px;
+  color: rgba(255,255,255,.7);
+  margin-top: 2px;
+}
+.reset-card .rc-body {
+  padding: 16px 18px;
+}
+.reset-card .rc-body p {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.reset-card .rc-body .rc-use {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ── FOOTER ──────────────────────────────────────────── */
+footer {
+  background: var(--navy);
+  color: rgba(255,255,255,.45);
+  text-align: center;
+  font-size: 12px;
+  padding: 18px 20px;
+  margin-top: 32px;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 700px) {
+  header { padding: 0 16px; flex-wrap: wrap; gap: 8px; min-height: auto; padding-top: 12px; padding-bottom: 12px; }
+  .hero { padding: 36px 16px 32px; }
+  .hero h2 { font-size: 22px; }
+  .section { padding: 32px 16px; }
+  .config-grid, .artifact-map, .reset-cards, .install-items { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-brand">
+    <span class="logo-pill">Capgemini</span>
+    <h1>RE Agent Pack — Installation &amp; Run Guide</h1>
+  </div>
+  <div class="header-meta">
+    TrackAll / Assurant<br>
+    Phase 1 · VS Code GitHub Copilot Pipeline
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>One install. One config file.<br><span>Nine steps to full requirements coverage.</span></h2>
+  <p>Drop the RE Agent Pack into any legacy codebase, fill in four fields, and run the pipeline. The agents do the analysis — you approve what goes into the client document.</p>
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-num">1</div>
+      <div class="stat-label">install command</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">1</div>
+      <div class="stat-label">config file to edit</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">7</div>
+      <div class="stat-label">project-agnostic agents</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">9</div>
+      <div class="stat-label">steps to final output</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- SECTION 1 — PREREQUISITES -->
+<div class="section">
+  <div class="section-title">Before You Start</div>
+  <div class="section-sub">Four things to have in place before running the installer</div>
+  <hr class="divider"/>
+
+  <div class="prereq-row">
+    <div class="prereq-card">
+      <div class="pc-icon">🖥</div>
+      <strong>VS Code</strong>
+      <p>Any recent version. The agents run as VS Code GitHub Copilot agents and must be selected from the Copilot chat agent dropdown.</p>
+    </div>
+    <div class="prereq-card">
+      <div class="pc-icon">🤖</div>
+      <strong>GitHub Copilot</strong>
+      <p>Copilot Chat with agent mode enabled. Agents live in <code style="font-size:11px;background:#e8ecf5;padding:1px 5px;border-radius:3px">.github/agents/</code> — VS Code reads them automatically.</p>
+    </div>
+    <div class="prereq-card">
+      <div class="pc-icon">📂</div>
+      <strong>Your project folder open</strong>
+      <p>Run the installer from the root of the project you want to analyse. The agents will read source files relative to that root.</p>
+    </div>
+    <div class="prereq-card">
+      <div class="pc-icon">🔧</div>
+      <strong>curl or wget</strong>
+      <p>The one-line installer uses <code style="font-size:11px;background:#e8ecf5;padding:1px 5px;border-radius:3px">curl</code> or <code style="font-size:11px;background:#e8ecf5;padding:1px 5px;border-radius:3px">wget</code> to pull files from GitHub. Both are standard on macOS and Linux.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- SECTION 2 — INSTALLATION -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="section-title">Installation</div>
+  <div class="section-sub">One command — run from the root of the project you want to analyse</div>
+  <hr class="divider"/>
+
+  <div class="install-block">
+    <div class="ib-label">Terminal — run from your project root</div>
+    <code>
+      <span class="comment"># One-line install</span><br>
+      <span class="cmd">bash</span> <span class="arg">&lt;(curl -sSL https://raw.githubusercontent.com/sasCapDev/re-agent-pack/main/install.sh)</span><br>
+      <br>
+      <span class="comment"># After the agents are installed, baseline your source files:</span><br>
+      <span class="cmd">bash</span> <span class="arg">pipeline/scripts/update-checksums.sh</span><br>
+      <br>
+      <span class="out">✓ .github/agents/project-scanner.agent.md</span><br>
+      <span class="out">✓ .github/agents/analysis-planner.agent.md</span><br>
+      <span class="out">✓ .github/agents/screen-analyzer.agent.md</span><br>
+      <span class="out">✓ .github/agents/rule-extractor.agent.md</span><br>
+      <span class="out">✓ .github/agents/dependency-mapper.agent.md</span><br>
+      <span class="out">✓ .github/agents/reviewer.agent.md</span><br>
+      <span class="out">✓ .github/agents/document-publisher.agent.md</span>
+    </code>
+  </div>
+
+  <div class="install-what">
+    <h4>What the installer creates</h4>
+    <div class="install-items">
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>7 agent definition files</div>
+          <div class="ii-path">.github/agents/*.agent.md</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Copilot workspace instructions</div>
+          <div class="ii-path">.github/copilot-instructions.md</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Full pipeline run guide</div>
+          <div class="ii-path">pipeline/GUIDE.md</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Agent operating rules</div>
+          <div class="ii-path">docs/AGENT_OPERATING_RULES.md</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Checksum baseline script</div>
+          <div class="ii-path">pipeline/scripts/update-checksums.sh</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Reset script (walkthrough resets)</div>
+          <div class="ii-path">pipeline/scripts/reset-artifacts.sh</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>Empty artifact directories</div>
+          <div class="ii-path">artifacts/ &nbsp; docs/final_output/</div>
+        </div>
+      </div>
+      <div class="install-item">
+        <div class="ii-dot"></div>
+        <div>
+          <div>No existing files overwritten</div>
+          <div class="ii-path">Safe to re-run on existing installs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- SECTION 3 — CONFIGURATION -->
+<div class="section">
+  <div class="section-title">Configuration</div>
+  <div class="section-sub">The only file you edit — generated by <code style="background:var(--mid);padding:1px 6px;border-radius:3px;font-size:13px">project-scanner</code> at Step 0, then reviewed by you</div>
+  <hr class="divider"/>
+
+  <div class="config-grid">
+    <div class="config-field">
+      <div class="cf-key">Project Name / Company / System Description</div>
+      <div class="cf-label">Project Identity</div>
+      <p>Name the project, company, and one-sentence description of the system. Agents use this to frame all output — it appears in document headers and context sections.</p>
+    </div>
+    <div class="config-field">
+      <div class="cf-key">Subdomain in Scope</div>
+      <div class="cf-label">What this run covers</div>
+      <p>Describe the specific screens and flows being analysed. Agents will stay within this boundary — they do not widen scope beyond what is declared here.</p>
+    </div>
+    <div class="config-field">
+      <div class="cf-key">All Source Files</div>
+      <div class="cf-label">Source file list</div>
+      <p>Full list of files for agents to read. Auto-populated by <code>project-scanner</code>. Add or remove files before Step 1 if the scanner missed anything. Relative paths from project root.</p>
+    </div>
+    <div class="config-field">
+      <div class="cf-key">Legacy Technology Stack</div>
+      <div class="cf-label">What the codebase is built on</div>
+      <p>Frontend, backend, integration layer, external services. Agents use this to frame technical findings and candidate API sections correctly.</p>
+    </div>
+    <div class="config-field">
+      <div class="cf-key">Modernisation Target</div>
+      <div class="cf-label">What you're building towards</div>
+      <p>Target frontend, API layer, database, and integration stack. The dependency-mapper and document-publisher use this to produce candidate architecture estimates.</p>
+    </div>
+    <div class="config-field cf-optional">
+      <div class="cf-key">Document Prefix</div>
+      <div class="cf-label">Output file naming</div>
+      <p>Used for project identification in the Publication Contract. Output files use fixed names: <code>Reverse_Engineered_Business_Requirements.md</code>, <code>Architecture_Flow.md</code>, etc.</p>
+    </div>
+  </div>
+
+  <div class="config-note">
+    <strong>One file, every run.</strong> &nbsp;Every agent reads <code>RE_AGENTS_CONFIG.md</code> before doing anything else. This is the only file you edit when deploying the pack to a new project — the agents adapt to whatever you put here.
+  </div>
+</div>
+
+
+<!-- SECTION 4 — PIPELINE STEPS -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="section-title">The 9-Step Pipeline</div>
+  <div class="section-sub">Click any step to see the agent, the exact prompt to paste, and what it produces</div>
+  <hr class="divider"/>
+
+  <ul class="steps-list" id="steps-list">
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">0</div>
+        <div class="step-header-text">
+          <div class="sh-agent">project-scanner</div>
+          <div class="sh-title">Scan the workspace and generate RE_AGENTS_CONFIG.md</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Scan this project workspace and generate RE_AGENTS_CONFIG.md.">
+          Scan this project workspace and generate RE_AGENTS_CONFIG.md.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li><code>RE_AGENTS_CONFIG.md</code> at project root — auto-filled from workspace scan</li>
+            <li>Fields marked <code>[REVIEW: ...]</code> need human input before Step 1</li>
+            <li>In batch mode (30+ dialog files): also generates <code>RE_AGENTS_CONFIG_MASTER.md</code> and per-subdomain configs</li>
+            <li>Initialises <code>artifacts/session_state.governance.md</code> — shared state read by every subsequent agent</li>
+            <li>On re-run: <strong>selective merge only</strong> — source file list always refreshed; manually curated fields preserved unless still <code>[REVIEW: ...]</code>. Shows diff summary and waits for confirmation before writing.</li>
+          </ul>
+          <p style="margin-top:10px;font-size:13px;color:var(--muted);">After Step 0, run: <code>bash pipeline/scripts/update-checksums.sh</code></p>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">1</div>
+        <div class="step-header-text">
+          <div class="sh-agent">analysis-planner</div>
+          <div class="sh-title">Assess coverage and recommend what to run next</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Assess current artifact coverage and recommend which agent to run next.">
+          Assess current artifact coverage and recommend which agent to run next.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li>Coverage counter summary — actual vs estimated for each artifact type</li>
+            <li>Source file diff — compares current checksums against previous run's snapshot (<code>source_checksums_prev.governance.md</code>); reports Added / Modified / Unchanged per file</li>
+            <li>Recommended next agent using a <strong>three-priority stack</strong>: (1) source file changes override all — new UI files → screen-analyzer, new logic files → rule-extractor; (2) pipeline sequence from <code>session_state.governance.md</code> last completed step; (3) coverage percentages as fallback only</li>
+            <li>No artifacts modified — read-only assessment</li>
+          </ul>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">2</div>
+        <div class="step-header-text">
+          <div class="sh-agent">screen-analyzer</div>
+          <div class="sh-title">Analyse screens, fields, and controls</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Inspect the screens in scope and update the screen inventory, field dictionary, and traceability matrix.">
+          Inspect the screens in scope and update the screen inventory, field dictionary, and traceability matrix.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li><code>artifacts/generated_screen_inventory.md</code> — screen name, purpose, user type, key controls</li>
+            <li><code>artifacts/field_dictionary.md</code> — every DDX field, control type, constraints, audit trigger</li>
+            <li><code>artifacts/traceability_matrix.md</code> — UI layer rows added</li>
+          </ul>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header open" onclick="toggleStep(this)">
+        <div class="step-num-badge">3</div>
+        <div class="step-header-text">
+          <div class="sh-agent">rule-extractor ★ core step</div>
+          <div class="sh-title">Extract business rules into the rule register</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body visible">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Extract business-rule candidates from all source files in scope.">
+          Extract business-rule candidates from all source files in scope.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li><code>artifacts/rule_register.governance.md</code> — each rule as a card with: Screen, Action, Rule statement, Rule type, <strong>Functional Area</strong>, Evidence (file::function), Grounding, Confidence</li>
+            <li>Deduplication check — compares each candidate against the existing rule register by Screen + Action + core constraint; matching cards get their Evidence/Grounding/Notes updated in place rather than creating a duplicate</li>
+            <li>Coverage gap table — functions with rule-like keywords that have no card yet</li>
+            <li><code>artifacts/traceability_matrix.md</code> — business rules rows added</li>
+          </ul>
+          <p style="margin-top:8px;font-size:13px;"><strong>Functional Area</strong> is tagged at extraction time (e.g. <em>Loan Search — Premium Rating</em>, <em>Client Management — Field Validation</em>) — no manual categorisation needed later.</p>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">4</div>
+        <div class="step-header-text">
+          <div class="sh-agent">dependency-mapper</div>
+          <div class="sh-title">Trace actions to services, gateways, and candidate APIs</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Trace the main user actions in scope and map their service, repository, and gateway dependencies.">
+          Trace the main user actions in scope and map their service, repository, and gateway dependencies.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li><code>artifacts/screen_action_api_estimation.md</code> — button click → handler → service → adapter → TME mnemonic → Tandem program + candidate REST API</li>
+            <li><code>artifacts/service_decomposition.md</code> — candidate service groupings aligned to modernisation target</li>
+            <li><code>artifacts/traceability_matrix.md</code> — action dependency and integration rows added</li>
+          </ul>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">5</div>
+        <div class="step-header-text">
+          <div class="sh-agent">reviewer</div>
+          <div class="sh-title">Grounding review — verify evidence and governance readiness</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Review all reverse-engineering outputs for overclaims, weak grounding, and governance readiness.">
+          Review all reverse-engineering outputs for overclaims, weak grounding, and governance readiness.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li>Rule count sanity check — actual rule count vs expected minimum by file layer (threshold: 70%)</li>
+            <li>Evidence resolution check — every <code>file::function</code> citation verified to exist; unresolved references downgraded to <code>[unresolved]</code></li>
+            <li>Functional Area completeness check — flags any card missing or unconfirmed Functional Area before publication</li>
+            <li>Coverage gap check — flags functions with rule-like keywords but no card</li>
+            <li>Any <code>[placeholder]</code> items counted and flagged for FRD block</li>
+          </ul>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">6</div>
+        <div class="step-header-text">
+          <div class="sh-agent">analysis-planner</div>
+          <div class="sh-title">Rerun scoping — identify what needs re-analysis after the governance review</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Re-evaluate only the rules and mappings that are flagged as Priority review or that remain ambiguous.">
+          Re-evaluate only the rules and mappings that are flagged as Priority review or that remain ambiguous.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li>Targeted rerun scope — only impacted rules and artifacts, not a full re-run</li>
+            <li>Entry written to <code>artifacts/re_run_log.governance.md</code></li>
+            <li>File-type → artifact impact mapping: modified UI files flag screen inventory; modified rules files flag the rule register; modified gateway files flag service decomposition</li>
+            <li>List of which agents to rerun and what each should focus on</li>
+          </ul>
+          <p style="margin-top:8px;font-size:13px;color:var(--muted);">Skip this step if the governance review flagged no rules for rerun.</p>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">7</div>
+        <div class="step-header-text">
+          <div class="sh-agent">document-publisher</div>
+          <div class="sh-title">Generate all six final deliverables from the artifact set</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Generate all six final deliverables from the artifact set.">
+          Generate all six final deliverables from the artifact set.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces (in <code>docs/final_output/</code>)</div>
+        <div class="sb-output">
+          <ul>
+            <li><code>Reverse_Engineered_Business_Requirements.md</code> — rules grouped by Functional Area with a Review Priority column; structured Traceability Summary table</li>
+            <li><code>Reverse_Engineered_Technical_Specification.md</code> — same grouping with full evidence citations for developers</li>
+            <li><code>Architecture_Flow.md</code> — Mermaid business/technical flow diagrams (7 sections incl. Legacy→Modern mapping)</li>
+            <li><code>Forward_Engineering_Modernization_Blueprint.md</code> — AI-consumable UI/API/DB specs for code generation</li>
+            <li><code>Rendering_Handoff.md</code> — paste into Claude, ChatGPT, or Gemini to generate the 4 polished Word documents (Business Requirements, Technical Specification, Architecture Flow, Modernization Blueprint)</li>
+            <li><code>Publication_Contract.json</code> — machine-readable manifest with <code>functionalArea</code> field; grounding statistics for Go/No-go check</li>
+          </ul>
+          <p style="margin-top:8px;font-size:13px;color:var(--muted);"><code>docs/final_output/</code> is gitignored — client deliverables stay out of the repository.</p>
+        </div>
+      </div>
+    </li>
+
+    <li class="step-item">
+      <div class="step-header" onclick="toggleStep(this)">
+        <div class="step-num-badge">8</div>
+        <div class="step-header-text">
+          <div class="sh-agent">reviewer</div>
+          <div class="sh-title">Publication sign-off — Go / No-go on the final documents</div>
+        </div>
+        <div class="step-chevron">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sb-prompt-label">PROMPT</div>
+        <div class="sb-prompt" data-prompt="Review the final output documents for publication readiness and give a Go / No-go.">
+          Review the final output documents for publication readiness and give a Go / No-go.
+          <button class="copy-btn" onclick="copyPrompt(this)">Copy</button>
+        </div>
+        <div class="sb-output-label">Produces</div>
+        <div class="sb-output">
+          <ul>
+            <li>Reads <code>Publication_Contract.json</code> grounding statistics</li>
+            <li><strong>No-go</strong> if any <code>[placeholder]</code> appears unqualified in the FRD — hard block</li>
+            <li><strong>Go</strong> with advisory notes if <code>[inferred]</code> items are within acceptable bounds</li>
+            <li>If No-go: fixes required, re-run Step 7</li>
+          </ul>
+        </div>
+      </div>
+    </li>
+
+  </ul>
+</div>
+</div>
+
+
+<!-- SECTION 5 — ARTIFACT MAP -->
+<div class="section">
+  <div class="section-title">What Gets Created</div>
+  <div class="section-sub">Every file written by the pipeline and which step produces it</div>
+  <hr class="divider"/>
+
+  <div class="artifact-map">
+    <div class="artifact-group">
+      <h4>Analysis Artifacts</h4>
+      <ul>
+        <li><span class="ag-step">S2</span> <span><code>generated_screen_inventory.md</code></span></li>
+        <li><span class="ag-step">S2</span> <span><code>field_dictionary.md</code></span></li>
+        <li><span class="ag-step">S4</span> <span><code>screen_action_api_estimation.md</code></span></li>
+        <li><span class="ag-step">S4</span> <span><code>service_decomposition.md</code></span></li>
+        <li><span class="ag-step">S2–4</span> <span><code>traceability_matrix.md</code></span></li>
+        <li><span class="ag-step">S3</span> <span><code>reverse_engineering_report.md</code></span></li>
+      </ul>
+    </div>
+    <div class="artifact-group">
+      <h4>Governance Artifacts</h4>
+      <ul>
+        <li><span class="ag-step gov">S3</span> <span><code>rule_register.governance.md</code></span></li>
+        <li><span class="ag-step gov">S5</span> <span><code>ambiguity_log.governance.md</code></span></li>
+        <li><span class="ag-step gov">S3</span> <span><code>rule_coverage_checklist.governance.md</code></span></li>
+        <li><span class="ag-step gov">S7</span> <span><code>re_run_log.governance.md</code></span></li>
+        <li><span class="ag-step gov">all</span> <span><code>session_state.governance.md</code> <em style="color:var(--muted);font-size:11px">(gitignored)</em></span></li>
+        <li><span class="ag-step gov">S0</span> <span><code>source_checksums.governance.md</code> <em style="color:var(--muted);font-size:11px">(gitignored)</em></span></li>
+        <li><span class="ag-step gov">S0</span> <span><code>source_checksums_prev.governance.md</code> <em style="color:var(--muted);font-size:11px">(gitignored — previous run snapshot for diff)</em></span></li>
+      </ul>
+    </div>
+    <div class="artifact-group">
+      <h4>Final Output <span style="font-size:11px;font-weight:400;color:var(--muted)">(gitignored)</span></h4>
+      <ul>
+        <li><span class="ag-step final">S8</span> <span><code>Reverse_Engineered_Business_Requirements.md</code></span></li>
+        <li><span class="ag-step final">S8</span> <span><code>Reverse_Engineered_Technical_Specification.md</code></span></li>
+        <li><span class="ag-step final">S8</span> <span><code>Architecture_Flow.md</code></span></li>
+        <li><span class="ag-step final">S8</span> <span><code>Forward_Engineering_Modernization_Blueprint.md</code></span></li>
+        <li><span class="ag-step final">S8</span> <span><code>Rendering_Handoff.md</code></span></li>
+        <li><span class="ag-step final">S8</span> <span><code>Publication_Contract.json</code></span></li>
+      </ul>
+    </div>
+    <div class="artifact-group">
+      <h4>From Rendering Handoff — external AI</h4>
+      <ul>
+        <li style="display:block;padding:8px 0;font-size:13px;color:var(--text);">
+          Paste <code>Rendering_Handoff.md</code> into any AI — it already contains the full instruction and the self-check. The AI returns four polished Word docs saved as<br>
+          <em style="color:var(--muted);">Reverse_Engineered_Business_Requirements.docx</em>, <em style="color:var(--muted);">Reverse_Engineered_Technical_Specification.docx</em>, <em style="color:var(--muted);">Architecture_Flow.docx</em>, and <em style="color:var(--muted);">Forward_Engineering_Modernization_Blueprint.docx</em>.
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- SECTION 6 — RESET -->
+<div style="background:var(--white);">
+<div class="section">
+  <div class="section-title">Resetting the Pipeline</div>
+  <div class="section-sub">Two modes — choose based on whether you want to show the full pipeline run or just the governance review flow</div>
+  <hr class="divider"/>
+
+  <div class="reset-cards">
+    <div class="reset-card">
+      <div class="rc-header">
+        <div class="rc-flag">--governance</div>
+        <div class="rc-title">Reset governance files only — keep analysis artifacts</div>
+      </div>
+      <div class="rc-body">
+        <div class="install-block" style="margin-bottom:12px;padding:12px 16px">
+          <code><span class="cmd">bash</span> <span class="arg">pipeline/scripts/reset-artifacts.sh --governance</span></code>
+        </div>
+        <p>Clears the rule register governance state and ambiguity log back to the committed baseline. Analysis artifacts (screen inventory, field dictionary, traceability matrix, rules) are preserved.</p>
+        <p class="rc-use">Use this when you want stable, predictable content — the analysis is already done, and you want to show the Step 5 governance review and Review Priority flagging without re-running Steps 2–4.</p>
+      </div>
+    </div>
+    <div class="reset-card">
+      <div class="rc-header">
+        <div class="rc-flag">--full</div>
+        <div class="rc-title">Full reset — restore to clean baseline</div>
+      </div>
+      <div class="rc-body">
+        <div class="install-block" style="margin-bottom:12px;padding:12px 16px">
+          <code><span class="cmd">bash</span> <span class="arg">pipeline/scripts/reset-artifacts.sh --full</span></code>
+        </div>
+        <p>Restores all artifacts to the committed baseline snapshot. Agents will regenerate everything from Step 1 onwards — content is correct but phrasing varies slightly between runs.</p>
+        <p class="rc-use">Use this when you want to run the complete pipeline from scratch and show the full extraction process live.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  RE Agent Pack &nbsp;·&nbsp; Phase 1 &nbsp;·&nbsp; TrackAll / Assurant &nbsp;·&nbsp; Capgemini
+</footer>
+
+<script>
+function toggleStep(header) {
+  const body = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  body.classList.toggle('visible', !isOpen);
+}
+
+function copyPrompt(btn) {
+  const promptText = btn.parentElement.getAttribute('data-prompt');
+  navigator.clipboard.writeText(promptText).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>

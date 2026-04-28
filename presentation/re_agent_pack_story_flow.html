@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RE Agent Pack — Story Flow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:   #0c2554;
+  --navy2:  #0f2d63;
+  --navy3:  #162f6e;
+  --amber:  #f0a500;
+  --amber2: #ffc542;
+  --blue:   #1e73be;
+  --green:  #1a7a4a;
+  --teal:   #0d7377;
+  --red:    #c0392b;
+  --light:  #f5f7fb;
+  --white:  #ffffff;
+  --text:   #1a2540;
+  --muted:  #5c6b8a;
+  --border: rgba(255,255,255,0.12);
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--navy);
+  color: #fff;
+}
+
+.page {
+  width: 1280px;
+  min-height: 820px;
+  margin: 0 auto;
+  padding: 28px 36px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── HEADLINE ── */
+.headline {
+  text-align: center;
+}
+.headline h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: #fff;
+  max-width: 960px;
+  margin: 0 auto 10px;
+}
+.headline h1 span { color: var(--amber2); }
+
+/* ── BANNER ── */
+.banner {
+  background: linear-gradient(90deg, var(--teal) 0%, var(--blue) 100%);
+  border-radius: 8px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .2px;
+}
+.banner-badge {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ── MAIN FLOW ── */
+.flow {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr 28px 1fr 28px 1fr;
+  gap: 0;
+  flex: 1;
+  align-items: stretch;
+}
+
+/* ── ARROW ── */
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+.arrow-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(180deg, transparent 0%, var(--amber) 30%, var(--amber) 70%, transparent 100%);
+  margin: 0 auto;
+}
+.arrow-head {
+  font-size: 20px;
+  color: var(--amber);
+  line-height: 1;
+}
+.arrow-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+.panel.p-build::before  { background: var(--blue); }
+.panel.p-run::before    { background: var(--amber); }
+.panel.p-review::before { background: var(--green); }
+.panel.p-fwd::before    { background: var(--teal); }
+
+.panel-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 2px;
+}
+.p-build  .panel-eyebrow { color: #7ec8f7; }
+.p-run    .panel-eyebrow { color: var(--amber2); }
+.p-review .panel-eyebrow { color: #6ee0a0; }
+.p-fwd    .panel-eyebrow { color: #5cd4d8; }
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+/* ── SECTION BLOCK ── */
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sec-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: rgba(255,255,255,0.4);
+}
+.sec-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.75);
+}
+
+/* ── CHIP ROW ── */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.chip-blue   { background: rgba(30,115,190,.22); color: #7ec8f7; border: 1px solid rgba(30,115,190,.4); }
+.chip-amber  { background: rgba(240,165,0,.18); color: var(--amber2); border: 1px solid rgba(240,165,0,.35); }
+.chip-green  { background: rgba(26,122,74,.22); color: #6ee0a0; border: 1px solid rgba(26,122,74,.4); }
+.chip-teal   { background: rgba(13,115,119,.25); color: #5cd4d8; border: 1px solid rgba(13,115,119,.4); }
+.chip-white  { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+.chip-red    { background: rgba(192,57,43,.2); color: #f0a090; border: 1px solid rgba(192,57,43,.35); }
+
+/* ── BULLET LIST ── */
+.blist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  list-style: none;
+}
+.blist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.72);
+  line-height: 1.4;
+}
+.blist li::before {
+  content: '▸';
+  color: var(--amber);
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 9px;
+}
+.blist li strong { color: #fff; }
+
+/* ── DOC GRID ── */
+.doc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.doc-item {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 10.5px;
+  color: rgba(255,255,255,.75);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.doc-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* ── TOOL BADGES ── */
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tool-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+.tool-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.td-blue   { background: #7ec8f7; }
+.td-amber  { background: var(--amber2); }
+.td-green  { background: #6ee0a0; }
+.td-purple { background: #c084fc; }
+.td-teal   { background: #5cd4d8; }
+
+/* ── INPUT BOX ── */
+.input-box {
+  background: rgba(255,255,255,.05);
+  border: 1px dashed rgba(255,255,255,.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.65);
+  line-height: 1.5;
+}
+.input-box strong { color: rgba(255,255,255,.9); }
+
+/* ── OUTPUT BOX ── */
+.output-box {
+  background: rgba(240,165,0,.08);
+  border: 1px solid rgba(240,165,0,.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.75);
+  line-height: 1.5;
+}
+.output-box strong { color: var(--amber2); }
+
+/* ── CALLOUT ── */
+.callout {
+  background: rgba(30,115,190,.12);
+  border: 1px solid rgba(30,115,190,.3);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,.7);
+  line-height: 1.45;
+}
+.callout strong { color: #7ec8f7; }
+
+/* ── METRICS BAR ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.metric {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 9px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.metric-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--amber2);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.metric-label {
+  font-size: 10.5px;
+  color: rgba(255,255,255,.55);
+  line-height: 1.3;
+}
+
+/* ── STEP BADGE ── */
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ── STEP ROW ── */
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,.72);
+  line-height: 1.4;
+}
+.step-row strong { color: #fff; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADLINE -->
+  <div class="headline">
+    <h1>We Built the Legacy App, the Agent Pipeline, and the Entire Toolchain Using <span>Claude Code &amp; GitHub Copilot</span> —<br>Then Ran Them to Generate Governed Deliverables Ready for Forward Engineering</h1>
+  </div>
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="banner-badge">VS Code + GitHub Copilot Agents</div>
+    <span>·</span>
+    <span>Claude Code — Opus 4.7 · Opus 4.6 · Sonnet 4.6</span>
+    <span>·</span>
+    <span>9-Step Pipeline</span>
+    <span>·</span>
+    <span>Any legacy codebase → same governed output</span>
+    <span>·</span>
+    <div class="banner-badge">Human-in-the-Loop Required</div>
+  </div>
+
+  <!-- FLOW ROW -->
+  <div class="flow">
+
+    <!-- ── PANEL 1 — BUILD ── -->
+    <div class="panel p-build">
+      <div>
+        <div class="panel-eyebrow">Phase 1 — Build</div>
+        <div class="panel-title">Legacy App + Agent Pipeline</div>
+      </div>
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Legacy App — Concept Input</div>
+        <div class="input-box">
+          <strong>Domain knowledge:</strong> Insurance loan servicing — policy placements, premium quoting, EDI notifications, carrier eligibility rules. Concept drawn from the insurance modernisation domain.
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-label">What was built</div>
+        <ul class="blist">
+          <li><strong>VC++ / MFC thick client</strong> — 3 dialogs, 25 loan rules</li>
+          <li><strong>Tandem COBOL programs</strong> — TKA900, TKA901, TKA902, TKA920, AIP930</li>
+          <li><strong>HP SQL/MP tables</strong> — LSS_LOAN_T, LSS_CYCLE_STEP_T</li>
+          <li><strong>RataBase rating adapter</strong> + KY ISO pre-call integration</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">9 Copilot Agents built with Claude Code</div>
+        <div class="chip-row">
+          <span class="chip chip-blue">project-scanner</span>
+          <span class="chip chip-blue">analysis-planner</span>
+          <span class="chip chip-blue">screen-analyzer</span>
+          <span class="chip chip-blue">rule-extractor</span>
+          <span class="chip chip-blue">dependency-mapper</span>
+          <span class="chip chip-blue">grounding-reviewer</span>
+          <span class="chip chip-amber">document-publisher</span>
+          <span class="chip chip-amber">publication-reviewer</span>
+          <span class="chip chip-teal">scaffold-generator</span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-label">Packaged as</div>
+        <div class="tool-row">
+          <div class="tool-badge"><div class="tool-dot td-blue"></div>VS Code .code-workspace</div>
+          <div class="tool-badge"><div class="tool-dot td-purple"></div>GitHub Copilot .agent.md</div>
+          <div class="tool-badge"><div class="tool-dot td-amber"></div>Claude Code CLI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 1 -->
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <div class="arrow-head">▶</div>
+      <div class="arrow-label">Run Pipeline</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- ── PANEL 2 — RUN ── -->
+    <div class="panel p-run">
+      <div>
+        <div class="panel-eyebrow">Phase 2 — Run</div>
+        <div class="panel-title">9-Step Pipeline in VS Code</div>
+      </div>
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Input</div>
+        <div class="input-box">
+          <strong>VC++ source code</strong> — any legacy codebase. Drop into <code>sample-project/</code>, update <code>RE_AGENTS_CONFIG.md</code>.
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-label">Pipeline steps (select agent → paste prompt)</div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <div class="step-row"><span class="step-badge">0</span><span>Scan workspace → auto-generate config</span></div>
+          <div class="step-row"><span class="step-badge">1</span><span>Assess coverage + detect source changes</span></div>
+          <div class="step-row"><span class="step-badge">2</span><span>Analyse screens, fields, controls</span></div>
+          <div class="step-row"><span class="step-badge">3</span><span>Extract 25 business rules with grounding labels</span></div>
+          <div class="step-row"><span class="step-badge">4</span><span>Map dependencies → candidate APIs</span></div>
+          <div class="step-row"><span class="step-badge">5</span><span>Governance review + Review Priority stamping</span></div>
+          <div class="step-row"><span class="step-badge">7</span><span><strong>Publish all 8 deliverables in one shot</strong></span></div>
+          <div class="step-row"><span class="step-badge">8</span><span>Publication-reviewer → Go / No-go gate</span></div>
+          <div class="step-row" style="opacity:.75;"><span class="step-badge" style="background:#0d7377;">9</span><span><em>Post-approval:</em> scaffold-generator → forward-engineering/ DDD scaffold (44 files, 7 layers)</span></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">8 Governed deliverables → feed Rendering_Handoff.md to any AI</div>
+        <div class="doc-grid">
+          <div class="doc-item"><span class="doc-icon">📋</span>Business Requirements</div>
+          <div class="doc-item"><span class="doc-icon">⚙️</span>Technical Specification</div>
+          <div class="doc-item"><span class="doc-icon">🏛️</span>Current State Arch Flow</div>
+          <div class="doc-item"><span class="doc-icon">🚀</span>Modern Stack Arch Flow</div>
+          <div class="doc-item"><span class="doc-icon">🔷</span>Modernization Blueprint</div>
+          <div class="doc-item"><span class="doc-icon">📊</span>API Taxonomy (18-col)</div>
+          <div class="doc-item"><span class="doc-icon">📄</span>Rendering Handoff</div>
+          <div class="doc-item"><span class="doc-icon">🗂️</span>Publication Contract</div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Rendering Handoff →</strong> Paste into GPT-4o, Claude, Gemini, or Copilot →
+        Get <strong>5 polished Word documents</strong> with navy/amber styling, review priority badges, and all diagrams rendered.
+      </div>
+    </div>
+
+    <!-- ARROW 2 -->
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <div class="arrow-head">▶</div>
+      <div class="arrow-label">Human Review</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- ── PANEL 3 — REVIEW ── -->
+    <div class="panel p-review">
+      <div>
+        <div class="panel-eyebrow">Phase 3 — Human Review</div>
+        <div class="panel-title">Business + Architecture Sign-off</div>
+      </div>
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Inputs to review</div>
+        <ul class="blist">
+          <li><strong>Business Requirements</strong> — 25 rules in plain English, subdomain registry, FR by subdomain</li>
+          <li><strong>Technical Specification</strong> — rules with code-level evidence (file::function)</li>
+          <li><strong>Current State Architecture Flow</strong> — VC++ → Tandem → SQL/MP</li>
+          <li><strong>Modern Stack Architecture Flow</strong> — Angular → .NET Core → Azure SQL</li>
+          <li><strong>API Taxonomy</strong> — 18-column DGT format</li>
+          <li><strong>Modernization Blueprint</strong> — UI + API + DB + test specs</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Review Priority flags guide attention</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div style="background:rgba(240,165,0,.15);border:1px solid rgba(240,165,0,.35);border-radius:6px;padding:7px 10px;font-size:11px;flex:1;min-width:120px;">
+            <div style="color:var(--amber2);font-weight:700;margin-bottom:3px;">⚑ Priority</div>
+            <div style="color:rgba(255,255,255,.65);line-height:1.4;">Inferred or ambiguous evidence — business reads closely before sign-off</div>
+          </div>
+          <div style="background:rgba(26,122,74,.15);border:1px solid rgba(26,122,74,.35);border-radius:6px;padding:7px 10px;font-size:11px;flex:1;min-width:120px;">
+            <div style="color:#6ee0a0;font-weight:700;margin-bottom:3px;">✓ Standard</div>
+            <div style="color:rgba(255,255,255,.65);line-height:1.4;">Code-grounded, no gaps — business can skim</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-label">Output</div>
+        <div class="output-box">
+          <strong>Reviewed &amp; approved artifacts</strong> — business-validated rule set, architect-approved flows, confirmed API taxonomy ready for forward engineering.
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>No code in-repo approval step.</strong> The Word documents are the review artifact. Amendments go back to the rule register; re-run Step 7 for updated deliverables.
+      </div>
+    </div>
+
+    <!-- ARROW 3 -->
+    <div class="arrow">
+      <div class="arrow-line"></div>
+      <div class="arrow-head">▶</div>
+      <div class="arrow-label">Forward Eng.</div>
+      <div class="arrow-line"></div>
+    </div>
+
+    <!-- ── PANEL 4 — FORWARD ENGINEERING ── -->
+    <div class="panel p-fwd">
+      <div>
+        <div class="panel-eyebrow">Phase 4 — Forward Engineering</div>
+        <div class="panel-title">Hand Artifacts to Any Coding Agent</div>
+      </div>
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Inputs</div>
+        <div class="chip-row">
+          <span class="chip chip-teal">Modern Stack Arch Flow</span>
+          <span class="chip chip-teal">API Taxonomy (18-col)</span>
+          <span class="chip chip-teal">Modernization Blueprint</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">What the coding agent generates</div>
+        <ul class="blist">
+          <li><strong>Strict DDD layering</strong> — Domain (Entities, Value Objects, Ports, Repositories, Events) → Application (Commands, Queries, DTOs) → Infrastructure (Persistence, Repositories, Adapters) → Presentation (thin controllers + DI wiring) — dependency rule enforced</li>
+          <li><strong>Angular UI</strong> — components, reactive forms, route config, TypeScript interfaces — wired to each rule's validator</li>
+          <li><strong>.NET Core APIs</strong> — controllers, services, request/response DTOs — annotated with rule IDs, error contracts per endpoint</li>
+          <li><strong>Target DB schema</strong> — CREATE TABLE DDL, EF Core entities with VO converters, migration scripts — columns traced to legacy source</li>
+          <li><strong>xUnit test class per rule</strong> — <span class="chip chip-amber" style="font-size:10px;padding:1px 6px;">25 rules = 25 test stubs</span> — grouped Priority first</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="sec">
+        <div class="sec-label">Compatible with any coding agent</div>
+        <div class="tool-row">
+          <div class="tool-badge"><div class="tool-dot td-amber"></div>Claude Code</div>
+          <div class="tool-badge"><div class="tool-dot td-purple"></div>GitHub Copilot</div>
+          <div class="tool-badge"><div class="tool-dot td-blue"></div>GPT-4o</div>
+          <div class="tool-badge"><div class="tool-dot td-teal"></div>Cursor</div>
+        </div>
+      </div>
+
+      <div class="output-box" style="margin-top:2px;">
+        <strong>Output:</strong> Runnable Angular + .NET Core + Azure SQL application scaffold. Every rule enforced. Every rule tested. Start with <strong>Part 0 — Vertical Slice</strong> and expand.
+      </div>
+    </div>
+
+  </div><!-- end .flow -->
+
+  <!-- METRICS BAR -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-val">25</div>
+      <div class="metric-label">Business Rules<br>Extracted &amp; Grounded</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">9</div>
+      <div class="metric-label">Pipeline Agents<br>Built with Claude Code</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">8</div>
+      <div class="metric-label">Governed Deliverables<br>Published in One Run</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">100%</div>
+      <div class="metric-label">Rule Test Coverage<br>in Blueprint Part 4</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">Any</div>
+      <div class="metric-label">Legacy Codebase<br>Same Pipeline</div>
+    </div>
+  </div>
+
+</div><!-- end .page -->
+</body>
+</html>

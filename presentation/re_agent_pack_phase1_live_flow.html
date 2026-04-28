@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RE Agent Pack — Phase 1 Live Flow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:   #0c2554;
+  --navy2:  #163a7a;
+  --amber:  #f0a500;
+  --amber2: #ffc542;
+  --blue-acc: #1e73be;
+  --green-acc: #1a7a4a;
+  --teal:   #0d7377;
+  --purple: #6b46c1;
+  --light:  #f5f7fb;
+  --mid:    #e8ecf5;
+  --white:  #ffffff;
+  --text:   #1a2540;
+  --muted:  #5c6b8a;
+  --grey-dim: #9e9e9e;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--light);
+  line-height: 1.6;
+}
+
+/* ── HEADER ─────────────────────────────────────────── */
+header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+}
+.header-brand { display: flex; align-items: center; gap: 14px; }
+.header-brand .logo-pill {
+  background: var(--amber);
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: .5px;
+}
+.header-brand h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--white);
+}
+.header-meta {
+  font-size: 12px;
+  color: rgba(255,255,255,.55);
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* ── HERO ────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--navy2) 0%, var(--navy) 100%);
+  color: var(--white);
+  padding: 44px 40px 36px;
+  text-align: center;
+}
+.hero h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  font-weight: 400;
+  margin-bottom: 12px;
+  line-height: 1.25;
+}
+.hero h2 span { color: var(--amber2); }
+.hero-tag { font-size: 14px; color: rgba(255,255,255,.75); max-width: 760px; margin: 0 auto; }
+
+/* ── SECTION WRAPPER ─────────────────────────────────── */
+.section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 36px 24px;
+}
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.section-sub { font-size: 13.5px; color: var(--muted); margin-bottom: 22px; }
+.divider { border: none; border-top: 1px solid var(--mid); margin: 8px 0 28px; }
+
+/* ── PIPELINE STRIP ──────────────────────────────────── */
+.pipeline-wrap {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 14px;
+  padding: 22px 24px 28px;
+  box-shadow: 0 1px 3px rgba(12,37,84,.05);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.pipeline-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  position: relative;
+  min-height: 120px;
+}
+.pipe-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 4px;
+  border-radius: 10px;
+  transition: background .2s, transform .15s;
+  position: relative;
+  z-index: 2;
+}
+.pipe-step:hover { background: var(--light); transform: translateY(-1px); }
+.pipe-step .step-num {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--navy);
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.pipe-step.active .step-num {
+  background: var(--amber);
+  color: var(--navy);
+  border-color: var(--amber2);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(240,165,0,.2);
+}
+.pipe-step .step-agent {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+  text-align: center;
+  line-height: 1.25;
+  max-width: 120px;
+}
+.pipe-step.active .step-agent { color: #9a6500; }
+.pipe-step .step-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-weight: 600;
+}
+/* connector line behind strip */
+.pipeline-track {
+  position: absolute;
+  top: 41px;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: var(--mid);
+  z-index: 1;
+  border-radius: 2px;
+}
+.pipeline-particle {
+  position: absolute;
+  top: 35px;
+  left: 5%;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle, var(--amber2) 0%, var(--amber) 60%, rgba(240,165,0,0) 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 18px 6px rgba(240,165,0,.55);
+  z-index: 3;
+  opacity: 0;
+  transition: left .8s cubic-bezier(.4,.1,.3,1), opacity .3s;
+  pointer-events: none;
+}
+.pipeline-particle.on { opacity: 1; }
+
+/* controls */
+.pipe-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.pipe-btn {
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: .2px;
+  transition: background .2s;
+}
+.pipe-btn:hover { background: var(--navy2); }
+.pipe-btn.primary { background: var(--amber); color: var(--navy); }
+.pipe-btn.primary:hover { background: var(--amber2); }
+.pipe-btn.ghost { background: transparent; color: var(--navy); border: 1px solid var(--mid); }
+.pipe-btn.ghost:hover { background: var(--light); }
+.kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--mid);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--light);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── FOCUS PANEL ─────────────────────────────────────── */
+.focus-panel {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-radius: 14px;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(12,37,84,.05);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.focus-header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.focus-header .focus-step-chip {
+  background: var(--amber);
+  color: var(--navy);
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  letter-spacing: .5px;
+}
+.focus-header h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  flex: 1;
+  min-width: 200px;
+}
+.focus-header .focus-nav { display: flex; gap: 6px; }
+
+.focus-body {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 0;
+  min-height: 340px;
+}
+.focus-col {
+  padding: 22px 26px;
+}
+.focus-col.left { border-right: 1px solid var(--mid); background: var(--light); }
+.focus-col h4 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.focus-col p { font-size: 13.5px; color: var(--text); margin-bottom: 14px; }
+.io-row { margin-bottom: 12px; }
+.io-row .io-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 4px;
+}
+.io-row code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--navy);
+  background: var(--mid);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+  word-break: break-word;
+}
+.sample {
+  background: #fbfcfe;
+  border: 1px solid var(--mid);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.sample .hl { color: var(--amber); font-weight: 700; }
+.sample .field { color: var(--blue-acc); font-weight: 600; }
+.sample .grnd { color: var(--green-acc); font-weight: 600; }
+.next-preview {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  padding: 10px 12px;
+  background: var(--light);
+  border-left: 3px solid var(--amber);
+  border-radius: 4px;
+}
+.next-preview strong { color: var(--navy); font-style: normal; }
+
+/* ── HITL LANE ───────────────────────────────────────── */
+.hitl-lane {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-left: 4px solid var(--amber);
+  border-radius: 10px;
+  padding: 16px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  cursor: pointer;
+  transition: background .2s;
+}
+.hitl-lane:hover { background: #fffdf6; }
+.hitl-lane h4 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--navy);
+}
+.hitl-lane p { font-size: 13px; color: var(--muted); max-width: 620px; }
+.hitl-lane .hitl-icon {
+  background: var(--amber);
+  color: var(--navy);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* ── DELIVERABLES FOOTER ─────────────────────────────── */
+.deliverables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.deliv-card {
+  background: var(--white);
+  border: 1px solid var(--mid);
+  border-top: 3px solid var(--green-acc);
+  border-radius: 10px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .2s;
+}
+.deliv-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26,122,74,.15); }
+.deliv-card h4 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.deliv-card .deliv-meta {
+  font-size: 11.5px;
+  color: var(--green-acc);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  margin-bottom: 8px;
+}
+.deliv-card .deliv-detail {
+  font-size: 12.5px;
+  color: var(--muted);
+  display: none;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--mid);
+}
+.deliv-card.expanded .deliv-detail { display: block; }
+.deliv-card.expanded { box-shadow: 0 4px 14px rgba(12,37,84,.12); }
+
+/* ── PHASE 2 RIBBON ──────────────────────────────────── */
+.phase2-ribbon {
+  margin: 24px 0 16px;
+  padding: 18px 22px;
+  background: #f0f2f7;
+  border: 1px dashed var(--grey-dim);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.phase2-ribbon .p2-icon {
+  background: var(--grey-dim);
+  color: var(--white);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .5px;
+}
+.phase2-ribbon .p2-text { font-size: 13px; color: var(--muted); flex: 1; min-width: 300px; }
+.phase2-ribbon .p2-text strong { color: var(--text); font-weight: 600; }
+
+/* ── MODAL ───────────────────────────────────────────── */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(12,37,84,.55);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--white);
+  border-radius: 14px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+.modal-header {
+  background: var(--amber);
+  color: var(--navy);
+  padding: 16px 22px;
+  font-family: 'DM Serif Display', serif;
+  font-size: 19px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--navy);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.modal-body { padding: 22px; font-size: 14px; }
+.modal-body h5 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--navy);
+  margin: 14px 0 6px;
+}
+.modal-body ul { padding-left: 20px; margin-bottom: 12px; }
+.modal-body li { margin-bottom: 4px; }
+.modal-body .approval-sample {
+  background: var(--light);
+  border: 1px solid var(--mid);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  margin: 10px 0;
+  white-space: pre-wrap;
+}
+
+/* ── FOOTER ──────────────────────────────────────────── */
+footer.page-footer {
+  background: var(--navy);
+  color: rgba(255,255,255,.75);
+  padding: 22px 40px;
+  text-align: center;
+  font-size: 12.5px;
+}
+footer.page-footer strong { color: var(--amber2); }
+
+/* ── RESPONSIVE: < 900px pipeline becomes vertical accordion ── */
+@media (max-width: 900px) {
+  .pipeline-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .pipe-step {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 14px;
+    text-align: left;
+    padding: 10px 14px;
+  }
+  .pipe-step .step-agent { text-align: left; max-width: none; }
+  .pipeline-track { display: none; }
+  .pipeline-particle { display: none; }
+  .focus-body { grid-template-columns: 1fr; }
+  .focus-col.left { border-right: none; border-bottom: 1px solid var(--mid); }
+  .hero h2 { font-size: 22px; }
+  header { padding: 0 20px; flex-direction: column; align-items: flex-start; padding-top: 8px; padding-bottom: 8px; gap: 4px; }
+  .header-meta { text-align: left; }
+}
+
+/* ── PRINT: single-page summary ──────────────────────── */
+@media print {
+  body { background: var(--white); font-size: 11px; }
+  header, footer.page-footer { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .hero { padding: 20px 20px 12px; }
+  .hero h2 { font-size: 20px; }
+  .section { padding: 12px 16px; max-width: none; }
+  .pipe-controls, .focus-header .focus-nav, .phase2-ribbon { display: none; }
+  .pipeline-wrap, .focus-panel, .hitl-lane, .deliv-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+  .pipeline-strip { flex-wrap: wrap; min-height: 0; }
+  .pipe-step { flex: 0 0 calc(12.5% - 4px); padding: 4px 2px; }
+  .pipe-step .step-num { width: 28px; height: 28px; font-size: 11px; border-width: 2px; }
+  .pipe-step .step-agent { font-size: 9.5px; }
+  .pipe-step .step-label { display: none; }
+  .focus-body { grid-template-columns: 1fr 1fr; min-height: 0; }
+  .focus-col { padding: 12px 14px; }
+  .sample { max-height: none; }
+  .deliv-card .deliv-detail { display: block; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <span class="logo-pill">PHASE 1</span>
+    <h1>RE Agent Pack — Live Flow</h1>
+  </div>
+  <div class="header-meta">
+    VS Code + GitHub Copilot pipeline<br>
+    Sample project: TrackAll Client Management
+  </div>
+</header>
+
+<section class="hero">
+  <h2>From legacy VC++ to a <span>modernization blueprint</span> in 9 governed steps</h2>
+  <p class="hero-tag">Nine agents read the legacy codebase, extract 25 business rules with Review Priority flags, and produce eight client-ready deliverables. A publication Go / No-go gates the handoff. Step 9 (post-approval) materialises the forward-engineering DDD scaffold. Click any step below to see what each agent does and what it produces.</p>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Interactive Pipeline</h2>
+  <p class="section-sub">Click a step, press <span class="kbd">▶</span> Play to auto-advance, or use <span class="kbd">←</span> / <span class="kbd">→</span> arrow keys and <span class="kbd">Space</span>.</p>
+
+  <div class="pipeline-wrap">
+    <div class="pipeline-strip" id="strip">
+      <div class="pipeline-track"></div>
+      <div class="pipeline-particle" id="particle"></div>
+      <!-- 8 steps injected by JS -->
+    </div>
+
+    <div class="pipe-controls">
+      <button class="pipe-btn primary" id="btn-play">▶ Play the full flow</button>
+      <button class="pipe-btn ghost" id="btn-pause" disabled>⏸ Pause</button>
+      <button class="pipe-btn ghost" id="btn-reset">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Focus Panel -->
+  <div class="focus-panel">
+    <div class="focus-header">
+      <span class="focus-step-chip" id="chip">STEP 0</span>
+      <h3 id="focus-title">project-scanner</h3>
+      <div class="focus-nav">
+        <button class="pipe-btn ghost" id="btn-prev">←</button>
+        <button class="pipe-btn ghost" id="btn-next">→</button>
+      </div>
+    </div>
+    <div class="focus-body">
+      <div class="focus-col left">
+        <h4 id="focus-role">Role</h4>
+        <p id="focus-desc"></p>
+        <div class="io-row">
+          <div class="io-label">Reads</div>
+          <div id="focus-inputs"></div>
+        </div>
+        <div class="io-row">
+          <div class="io-label">Writes</div>
+          <div id="focus-outputs"></div>
+        </div>
+        <div class="next-preview" id="focus-next"></div>
+      </div>
+      <div class="focus-col right">
+        <h4 id="sample-title">Sample output</h4>
+        <div class="sample" id="sample-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HITL Lane -->
+  <div class="hitl-lane" id="hitl-lane">
+    <div class="hitl-icon">👤</div>
+    <div>
+      <h4>Human-in-the-Loop — Business Reviewer</h4>
+      <p>At Step 5 the reviewer stamps each rule as <strong>Priority</strong> or <strong>Standard</strong> based on grounding and ambiguity signals. At Step 8 the reviewer gives a Go / No-go on the final documents. Business stakeholders validate the generated Word documents directly — there is no in-repo approval step.</p>
+    </div>
+    <button class="pipe-btn">See example →</button>
+  </div>
+
+  <!-- Deliverables Footer -->
+  <h2 class="section-title" style="margin-top: 12px;">6 Client Deliverables</h2>
+  <p class="section-sub">Written by <code style="background: var(--mid); padding: 1px 6px; border-radius: 3px;">document-publisher</code> at Step 7. Click a card to expand.</p>
+  <div class="deliverables-grid" id="deliverables"></div>
+
+  <div class="phase2-ribbon">
+    <span class="p2-icon">NEXT →</span>
+    <div class="p2-text"><strong>Handover</strong>: the seven deliverables become the input for the modernization programme. The development team uses the Blueprint and API Taxonomy to build the target application.</div>
+  </div>
+</section>
+
+<footer class="page-footer">
+  <strong>RE Agent Pack</strong> · VS Code + GitHub Copilot pipeline · interactive walkthrough of the governed reverse-engineering flow
+</footer>
+
+<!-- HITL Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      Business Reviewer — what they do
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <p>The reviewer agent runs in two modes, each invoked by the human operator. Step 5 stamps each rule as Priority or Standard; Step 8 gives a publication Go / No-go. Business stakeholders validate the generated Word documents directly, outside the repo.</p>
+
+      <h5>Mode 1 — Grounding review (Step 5)</h5>
+      <ul>
+        <li>Rule count sanity check (are there enough rules for the number of source files?)</li>
+        <li>Coverage gap scan (any keyword-bearing functions without a rule card?)</li>
+        <li><strong>Plain-English clarity check</strong> (does every card have a stakeholder-facing statement?)</li>
+        <li>Evidence resolution (does every cited file::function actually exist?)</li>
+      </ul>
+
+      <h5>Review Priority stamping (Step 5)</h5>
+      <p>After grounding checks, every rule is automatically stamped as:</p>
+      <ul>
+        <li><strong>Priority</strong> — the rule is inferred, sample-derived, or ambiguous. Business reviewers should read closely.</li>
+        <li><strong>Standard</strong> — the rule traces directly to legacy code with no open ambiguities. Business reviewers can skim.</li>
+      </ul>
+      <p>There is no in-repo approval step. The Word documents generated in Step 7 are the review artifact sent to business stakeholders.</p>
+
+      <h5>Example stamping output</h5>
+      <div class="approval-sample">R-001 — Client ID is required
+  Grounding: [SG]  ·  Ambiguities: none  ·  Evidence: resolved
+  → Review Priority: Standard
+
+R-007 — Cycle Code must match insurance line
+  Grounding: [inferred]  ·  Ambiguities: A-003
+  → Review Priority: Priority</div>
+
+      <h5>Mode 2 — Publication sign-off (Step 8)</h5>
+      <ul>
+        <li>Go / No-go on the final deliverables before they are shared with a client audience.</li>
+        <li>Blocks publication if any <code>placeholder</code>-grounded item appears unqualified in a client-facing document.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── PIPELINE DATA ────────────────────────────────────────
+// Phase 1 only — no Azure Foundry / Teams / cloud references.
+// Sample content is hardcoded (drawn from the TrackAll sample run) so the page is standalone.
+const steps = [
+  {
+    num: 0,
+    agent: 'project-scanner',
+    label: 'Scan',
+    role: 'Workspace discovery',
+    desc: 'Walks the repository, identifies the legacy stack, and generates the RE_AGENTS_CONFIG.md file that every other agent reads as its first action.',
+    inputs: ['sample-project/src/*.{cpp,h}', 'sample-project/tandem/*.{cbl,sql}'],
+    outputs: ['RE_AGENTS_CONFIG.md', 'source_checksums.governance.md'],
+    next: 'After scanning, analysis-planner assesses coverage and decides which agent runs next.',
+    sampleTitle: 'RE_AGENTS_CONFIG.md (excerpt)',
+    sample: `<span class="field">Project name</span>: TrackAll Client Management
+<span class="field">Legacy stack</span>: VC++ / MFC · Tandem COBOL · SQL/MP
+<span class="field">Modernisation target</span>: Angular + .NET Core + Azure SQL
+<span class="field">Document prefix</span>: TrackAll_ClientManagement
+<span class="field">Source files</span> (18):
+  - ClientDetailsDlg.cpp, ClientSearchDlg.cpp
+  - ClientRules.cpp, ClientService.cpp
+  - ClientRepository.cpp, DbGateway.cpp
+  - TmeGatewayAdapter.cpp, AuditLogger.cpp
+  - LoanSearchDlg.cpp, LoanRules.cpp
+  - TMELibAdapter.cpp, RataBaseServiceAdapter.cpp
+  - EDINotificationWriter.cpp
+  - tandem/TKA900.cbl, tandem/LSS_SCHEMA.sql
+  ...`
+  },
+  {
+    num: 1,
+    agent: 'analysis-planner',
+    label: 'Plan',
+    role: 'Coverage + routing',
+    desc: 'Reads checksums and coverage state, compares against previous runs, and recommends which agent to run next. Does NOT auto-chain — the human stays in control of each step.',
+    inputs: ['source_checksums.governance.md', 'rule_coverage_checklist.governance.md', 'session_state.governance.md'],
+    outputs: ['session_state.governance.md (handoff log)', 'recommendation to the operator'],
+    next: 'Recommends screen-analyzer on first run; later triggers reruns if source files change.',
+    sampleTitle: 'Coverage assessment',
+    sample: `<span class="field">Source file changes</span>: 0 added, 0 modified, 0 removed
+<span class="field">Rule coverage</span>: 27 rules extracted / expected ~24
+<span class="field">Ambiguity count</span>: 6 open
+<span class="field">Last completed step</span>: screen-analyzer — Step 2
+
+<span class="hl">Recommendation</span>: run rule-extractor (Step 3).
+Reason: screen inventory present; rule extraction
+next in pipeline sequence.`
+  },
+  {
+    num: 2,
+    agent: 'screen-analyzer',
+    label: 'Screens',
+    role: 'UI + fields + controls',
+    desc: 'Extracts every dialog, field, and control from the legacy UI layer. Produces a field dictionary with business meaning, constraints, and audit triggers.',
+    inputs: ['sample-project/src/*Dlg.cpp', 'sample-project/src/resource.h'],
+    outputs: ['generated_screen_inventory.md', 'field_dictionary.md'],
+    next: 'rule-extractor then picks up the field dictionary to extract business rules.',
+    sampleTitle: 'field_dictionary.md (excerpt)',
+    sample: `<span class="field">Field</span>: Client ID
+<span class="field">Control</span>: CEdit (IDC_EDIT_CLIENT_ID)
+<span class="field">Business meaning</span>: Unique identifier for the client
+<span class="field">Constraint</span>: required, ≤ 20 chars, unique
+<span class="field">Audit trigger</span>: logged on create
+<span class="grnd">Grounding</span>: [SG]
+
+<span class="field">Field</span>: Status
+<span class="field">Control</span>: CComboBox (Active / Inactive / Pending)
+<span class="field">Business meaning</span>: Current client lifecycle stage
+<span class="field">Audit trigger</span>: logged on change
+<span class="grnd">Grounding</span>: [SG]`
+  },
+  {
+    num: 3,
+    agent: 'rule-extractor',
+    label: 'Rules',
+    role: 'Business rule cards',
+    desc: 'Extracts business rules from validation code, guard clauses, state transitions, and audit triggers. Writes each rule as a card with BOTH a Plain-English stakeholder statement and a code-grounded technical statement.',
+    inputs: ['all source files from RE_AGENTS_CONFIG.md', 'field_dictionary.md', 'session_state.governance.md'],
+    outputs: ['rule_register.governance.md', 'reverse_engineering_report.md', 'traceability_matrix.md'],
+    next: 'dependency-mapper then traces action → handler → service → repository for each rule.',
+    sampleTitle: 'rule_register.governance.md — R-L-012',
+    sample: `## R-L-012 — 14E EDI format by FCI_CODE
+
+| Field | Value |
+|---|---|
+| Screen | Loan Search |
+| Action | Process result — EDI path |
+| <span class="hl">Plain-English</span> | The outbound placement notification is formatted for the servicer managing the loan: Black Knight servicers receive fixed-width; all other servicers receive delimited. Using the wrong format causes the servicer to reject the notification. |
+| Rule statement | 14E EDI output format is determined by FCI_CODE: prefix 'BK' → Black Knight fixed-width v2.3; other → SSP delimited v4. |
+| Evidence | EDINotificationWriter.cpp::Write14ERecord |
+| <span class="grnd">Grounding</span> | code-grounded |
+
+<span class="field">Decision</span>: Approved
+<span class="field">Status</span>: Approved`
+  },
+  {
+    num: 4,
+    agent: 'dependency-mapper',
+    label: 'Deps',
+    role: 'Action → API tracing',
+    desc: 'For every UI action, traces the call path through handlers, services, repositories, and gateways. Proposes candidate modern APIs based on the traced dependencies.',
+    inputs: ['rule_register.governance.md', 'field_dictionary.md', 'all source files'],
+    outputs: ['screen_action_api_estimation.md', 'service_decomposition.md'],
+    next: 'reviewer then checks grounding, clarity, and coverage, and stamps each rule with a Review Priority (Priority or Standard).',
+    sampleTitle: 'service_decomposition.md (excerpt)',
+    sample: `<span class="field">Candidate service</span>: Client Management API
+<span class="field">Legacy source</span>: ClientService.cpp, ClientRepository.cpp
+<span class="field">Endpoints</span>:
+  POST   /clients             (SaveClient)
+  GET    /clients             (SearchClients)
+  GET    /clients/{id}        (LoadClient)
+  POST   /clients/{id}/quote  (RequestQuote)
+
+<span class="field">Dependencies</span>: DbGateway, AuditLogger, TmeGatewayAdapter
+<span class="field">Rules enforced</span>: R-001 through R-011, R-014
+<span class="grnd">Confidence</span>: High`
+  },
+  {
+    num: 5,
+    agent: 'reviewer',
+    label: 'Review',
+    role: 'Grounding + Review Priority stamping + publication sign-off',
+    desc: 'Runs two modes across Steps 5 and 9: grounding review with Review Priority stamping, and publication sign-off. No in-repo approval step — every rule is stamped Priority or Standard based on grounding and ambiguity signals, and the generated Word documents are the review artifact sent to business.',
+    inputs: ['all artifacts', 'rule_register.governance.md'],
+    outputs: ['Review Priority stamped on each rule', 'ambiguity_log.governance.md', 'Go / No-go at Step 8'],
+    next: 'Jump to document-publisher at Step 7 (or run Step 6 rerun first if governance flagged rules for re-analysis).',
+    sampleTitle: 'Mode 1 — grounding review output',
+    sample: `<span class="hl">Rule count sanity check</span>: PASSED (27/24 min)
+<span class="hl">Coverage gap check</span>: PASSED
+<span class="hl">Plain-English clarity check</span>: PASSED (27/27)
+<span class="hl">Evidence resolution</span>: PASSED (27/27)
+
+<span class="field">Findings</span>:
+  - R-010 placeholder grounding confirmed → Deferred
+  - R-003 status already Approved → no rerun needed
+  - 6 ambiguities remain open, surfaced in Open Items
+
+<span class="field">Rerun needed</span>: NO
+<span class="field">Recommendation</span>: proceed to document-publisher Step 7`
+  },
+  {
+    num: 6,
+    agent: 'analysis-planner',
+    label: 'Re-plan',
+    role: 'Targeted rerun scoping after governance review',
+    desc: 'After the reviewer stamps Review Priorities at Step 5, checks whether any rules were flagged Priority (for deeper analysis) and whether any source files changed since extraction. If so, scopes a targeted rerun; otherwise confirms the pipeline is ready for publication.',
+    inputs: ['source_checksums.governance.md', 'source_checksums_prev.governance.md', 'rule_register.governance.md (Review Priority flags)', 'ambiguity_log.governance.md'],
+    outputs: ['rerun scope (or "no rerun needed")', 'handoff to document-publisher'],
+    next: 'If no rerun: document-publisher Step 7. If rerun: targeted re-extraction first.',
+    sampleTitle: 'Rerun scoping — typical outcome',
+    sample: `<span class="field">Review Priority stamping</span>: 23 Standard · 4 Priority
+<span class="field">Unresolved evidence</span>: 0
+<span class="field">Open ambiguities</span>: 6 (R-010 context, CLTMNT/QREQ scope)
+<span class="field">Source file changes since extraction</span>: 0
+<span class="field">Artifacts flagged for rerun</span>: 0
+
+<span class="hl">Decision</span>: No rerun needed.
+Priority rules will be read closely in the generated
+Word documents by business reviewers.
+
+<span class="field">Handoff</span>: Run document-publisher Step 7
+to generate the 6 final deliverables.`
+  },
+  {
+    num: 7,
+    agent: 'document-publisher',
+    label: 'Publish',
+    role: '8 deliverables',
+    desc: 'Writes the eight final client-facing deliverables. Renders business rules with the Plain-English field in the FRD for stakeholders and the technical Rule statement in the Technical Documentation for devs. Generates a complete Flow Architecture (Current State + Modern Stack), and a Modernization Blueprint that includes the First Vertical Slice walkthrough.',
+    inputs: ['all analysis + governance artifacts', 'RE_AGENTS_CONFIG.md'],
+    outputs: [
+      'Reverse_Engineered_Business_Requirements.md',
+      'Reverse_Engineered_Technical_Specification.md',
+      'Current_State_Architecture_Flow.md',
+      'Modern_Stack_Architecture_Flow.md',
+      'Forward_Engineering_Modernization_Blueprint.md',
+      'Forward_Engineering_API_Taxonomy.md',
+      'Rendering_Handoff.md',
+      'Publication_Contract.json'
+    ],
+    next: 'reviewer Mode 2 (Step 8) gives a Go / No-go before handover to the modernization team.',
+    sampleTitle: 'Forward_Engineering_Modernization_Blueprint.md — First Vertical Slice',
+    sample: `## Part 0 — Build the First Vertical Slice
+
+Use this walkthrough to prove the target stack end-to-end
+with the simplest approved rule before expanding.
+
+1. <span class="hl">Pick the seed rule</span>: R-001 (Client ID required).
+2. <span class="hl">Build UI-001</span>: ClientSearchComponent in Angular.
+3. <span class="hl">Build SVC-001</span>: Search endpoint in .NET Core.
+4. <span class="hl">Build DB-001</span>: Client entity + migration.
+5. <span class="hl">Acceptance test</span>:
+   given_empty_client_id_then_400_R_001
+6. <span class="hl">Wire and run</span> locally; commit the slice.
+
+Every subsequent spec lands with a matching test
+following the same pattern.`
+  }
+];
+
+const deliverables = [
+  { n: 1, title: 'Reverse-Engineered Business Requirements', meta: 'For business stakeholders', detail: 'Section 4 (Business Rules Register) uses the Plain-English rule field so a PM or business analyst can read it end-to-end without referencing the code.' },
+  { n: 2, title: 'Reverse-Engineered Technical Specification', meta: 'For developers + architects', detail: 'Section 5 uses the technical Rule statement field with file::function evidence — devs can trace every rule to exact legacy code.' },
+  { n: 3, title: 'Rendering Handoff', meta: 'Word-ready prompt', detail: 'Combined markdown prompt — paste into any AI (Claude, ChatGPT, Gemini) to produce the four polished Word files (Business Requirements, Technical Specification, Architecture Flow, Modernization Blueprint). Header already tells the AI to save them as the canonical .docx names and runs a short self-check.' },
+  { n: 4, title: 'Publication Contract', meta: 'Machine-readable', detail: 'Structured JSON manifest of every section with grounding stats. Used by downstream Word-generation scripts or custom tooling.' },
+  { n: 5, title: 'Architecture Flow', meta: '7-section Mermaid pack', detail: 'System context, business flows, sequence diagrams, service boundary map, integration map, architecture decision prompts, and the Legacy → Modern side-by-side diagram.' },
+  { n: 6, title: 'Forward Engineering Modernization Blueprint', meta: 'AI-consumable specs', detail: 'UI + API + DB specs plus the Build the First Vertical Slice walkthrough and per-API error-handling contracts. Copy-paste a spec into any AI model to generate target-stack code.' }
+];
+
+// ── STATE ────────────────────────────────────────────────
+let active = 0;
+let playing = false;
+let playTimer = null;
+
+// ── RENDER PIPELINE STRIP ────────────────────────────────
+const strip = document.getElementById('strip');
+steps.forEach((s, idx) => {
+  const el = document.createElement('div');
+  el.className = 'pipe-step';
+  el.dataset.idx = idx;
+  el.innerHTML = `
+    <div class="step-num">${s.num}</div>
+    <div class="step-agent">${s.agent}</div>
+    <div class="step-label">${s.label}</div>
+  `;
+  el.addEventListener('click', () => select(idx));
+  strip.appendChild(el);
+});
+
+// ── RENDER DELIVERABLES ──────────────────────────────────
+const delivGrid = document.getElementById('deliverables');
+deliverables.forEach(d => {
+  const el = document.createElement('div');
+  el.className = 'deliv-card';
+  el.innerHTML = `
+    <div class="deliv-meta">Deliverable ${d.n}</div>
+    <h4>${d.title}</h4>
+    <div style="font-size:12px;color:var(--muted);">${d.meta}</div>
+    <div class="deliv-detail">${d.detail}</div>
+  `;
+  el.addEventListener('click', () => el.classList.toggle('expanded'));
+  delivGrid.appendChild(el);
+});
+
+// ── SELECT STEP ──────────────────────────────────────────
+function select(idx) {
+  active = (idx + steps.length) % steps.length;
+  const s = steps[active];
+  const tiles = strip.querySelectorAll('.pipe-step');
+  tiles.forEach((t, i) => t.classList.toggle('active', i === active));
+
+  document.getElementById('chip').textContent = `STEP ${s.num}`;
+  document.getElementById('focus-title').textContent = s.agent;
+  document.getElementById('focus-role').textContent = s.role;
+  document.getElementById('focus-desc').textContent = s.desc;
+  document.getElementById('focus-inputs').innerHTML = s.inputs.map(i => `<code>${i}</code>`).join('');
+  document.getElementById('focus-outputs').innerHTML = s.outputs.map(o => `<code>${o}</code>`).join('');
+  document.getElementById('focus-next').innerHTML = `<strong>Next:</strong> ${s.next}`;
+  document.getElementById('sample-title').textContent = s.sampleTitle;
+  document.getElementById('sample-body').innerHTML = s.sample;
+
+  // move particle
+  const particle = document.getElementById('particle');
+  const stripRect = strip.getBoundingClientRect();
+  const tile = tiles[active];
+  if (tile && stripRect.width > 0 && window.innerWidth > 900) {
+    const tileRect = tile.getBoundingClientRect();
+    const relLeft = tileRect.left - stripRect.left + tileRect.width/2 - 7;
+    particle.style.left = relLeft + 'px';
+    particle.classList.add('on');
+  } else {
+    particle.classList.remove('on');
+  }
+}
+
+// ── PLAY / PAUSE / RESET ─────────────────────────────────
+const btnPlay = document.getElementById('btn-play');
+const btnPause = document.getElementById('btn-pause');
+const btnReset = document.getElementById('btn-reset');
+
+function play() {
+  if (playing) return;
+  playing = true;
+  btnPlay.disabled = true;
+  btnPause.disabled = false;
+  playTimer = setInterval(() => {
+    const next = (active + 1) % steps.length;
+    if (next === 0) {
+      pause();
+      return;
+    }
+    select(next);
+  }, 4000);
+}
+function pause() {
+  playing = false;
+  btnPlay.disabled = false;
+  btnPause.disabled = true;
+  if (playTimer) clearInterval(playTimer);
+  playTimer = null;
+}
+function reset() {
+  pause();
+  select(0);
+}
+
+btnPlay.addEventListener('click', play);
+btnPause.addEventListener('click', pause);
+btnReset.addEventListener('click', reset);
+document.getElementById('btn-prev').addEventListener('click', () => select(active - 1));
+document.getElementById('btn-next').addEventListener('click', () => select(active + 1));
+
+// ── KEYBOARD NAV ─────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (document.getElementById('modal').classList.contains('open')) {
+    if (e.key === 'Escape') closeModal();
+    return;
+  }
+  if (e.key === 'ArrowRight') { e.preventDefault(); select(active + 1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); select(active - 1); }
+  else if (e.key === ' ') { e.preventDefault(); playing ? pause() : play(); }
+});
+
+// ── HITL MODAL ───────────────────────────────────────────
+const modal = document.getElementById('modal');
+function openModal() { modal.classList.add('open'); }
+function closeModal() { modal.classList.remove('open'); }
+document.getElementById('hitl-lane').addEventListener('click', openModal);
+document.getElementById('modal-close').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+// ── RESIZE: reposition particle ──────────────────────────
+window.addEventListener('resize', () => select(active));
+
+// ── BOOT ─────────────────────────────────────────────────
+select(0);
+</script>
+</body>
+</html>

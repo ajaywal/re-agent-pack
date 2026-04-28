@@ -1,0 +1,15 @@
+{
+  "name": "re-agent-pack-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for the RE Agent Pack pipeline",
+  "private": true,
+  "dependencies": {
+    "docx": "^9.0.0"
+  },
+  "scripts": {
+    "checksums": "bash update-checksums.sh"
+  },
+  "notes": {
+    "generate-word": "AI-powered Word generation from Publication_Contract.json is planned as a future step using the Anthropic API. The docx dependency is included here to support that script when it is implemented. See docs/final_output/Publication_Contract.json for the contract schema produced by document-publisher."
+  }
+}
