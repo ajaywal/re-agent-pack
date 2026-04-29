@@ -17,22 +17,115 @@ function atLeastOneFieldValidator(fieldNames: string[]): ValidatorFn {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <h2>Loan Search</h2>
-    <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
-      <label>Loan Number <input formControlName="loanNum" /></label>
-      <label>Borrower Name <input formControlName="borrowerName" /></label>
-      <label>Property Address <input formControlName="propertyAddress" /></label>
-      <button type="submit">Search</button>
-    </form>
+    <section class="loan-page">
+      <header class="loan-hero">
+        <div>
+          <p class="eyebrow">Assurant Loan Maintenance</p>
+          <h1>Loan search and<br />processing</h1>
+          <p class="hero-copy">Modernized from TrackAll loan maintenance with rule-traced API validation.</p>
+        </div>
+        <button type="button" class="primary-action hero-action" (click)="goToAdd()">Add loan</button>
+      </header>
 
-    <p *ngIf="error" style="color:#b00020">{{ error }}</p>
+      <form class="search-band" [formGroup]="searchForm" (ngSubmit)="onSearch()">
+        <label>Loan number <input formControlName="loanNum" placeholder="1234567890" /></label>
+        <label>Borrower name <input formControlName="borrowerName" placeholder="Jordan Smith" /></label>
+        <label>Property address <input formControlName="propertyAddress" placeholder="120 Main St" /></label>
+        <div class="search-actions">
+          <button type="submit" class="primary-action">Search</button>
+          <button type="button" class="secondary-action" (click)="onClear()">Clear</button>
+        </div>
+      </form>
 
-    <ul>
-      <li *ngFor="let row of results">
-        {{ row.loanNum }} - {{ row.borrowerName }}
-        <button type="button" (click)="onProcess(row)">Process</button>
-      </li>
-    </ul>
+      <p *ngIf="error" class="status-message">{{ error }}</p>
+
+      <section class="workspace-grid">
+        <article class="results-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Search results</p>
+              <h2>{{ results.length }} {{ results.length === 1 ? 'loan' : 'loans' }}</h2>
+            </div>
+            <span class="rule-chip">R-L-001 to R-L-008</span>
+          </div>
+
+          <table *ngIf="results.length">
+            <thead>
+              <tr>
+                <th>Loan</th>
+                <th>Borrower</th>
+                <th>State</th>
+                <th>Coverage</th>
+                <th>Quote</th>
+                <th>EDI</th>
+                <th>Value</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let row of results"
+                [class.is-selected]="selectedLoan?.loanNum === row.loanNum"
+                (click)="selectLoan(row)"
+              >
+                <td>
+                  <strong>{{ row.loanNum }}</strong>
+                  <span>{{ row.lenderFormId || 'No form' }}</span>
+                </td>
+                <td>{{ row.borrowerName }}</td>
+                <td>{{ row.propertyState || '-' }}</td>
+                <td>{{ coverageLabel(row) }}</td>
+                <td><span class="flag-pill">{{ row.quoteReqd || '-' }}</span></td>
+                <td><span class="flag-pill">{{ row.ediFlag || '-' }}</span></td>
+                <td>{{ formatMoney(row.propertyValue) }}</td>
+                <td>{{ row.loanStatus }}</td>
+                <td><button type="button" class="row-action" (click)="onProcess(row); $event.stopPropagation()">Process</button></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div *ngIf="!results.length" class="empty-state">
+            Search by loan number or borrower name to review loan processing rules.
+          </div>
+        </article>
+
+        <aside class="detail-panel" *ngIf="selectedLoan as loan">
+          <p class="section-label">Loan detail</p>
+          <h2>{{ loan.loanNum }}</h2>
+
+          <dl>
+            <div>
+              <dt>Cycle</dt>
+              <dd>{{ loan.cycleType || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Form ID</dt>
+              <dd>{{ loan.lenderFormId || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Property type</dt>
+              <dd>{{ loan.propertyType }}</dd>
+            </div>
+            <div>
+              <dt>Property value</dt>
+              <dd>{{ formatMoney(loan.propertyValue) }}</dd>
+            </div>
+            <div>
+              <dt>Address</dt>
+              <dd>{{ loan.propertyAddress }}</dd>
+            </div>
+            <div>
+              <dt>UPB</dt>
+              <dd>{{ formatMoney(loan.unpaidPrincipalBalance) }}</dd>
+            </div>
+          </dl>
+
+          <button type="button" class="primary-action detail-action" (click)="onProcess(loan)">Process selected loan</button>
+          <button type="button" class="secondary-action detail-action" (click)="onModify(loan)">Modify loan</button>
+        </aside>
+      </section>
+    </section>
   `,
 })
 export class LoanSearchComponent {
@@ -52,6 +145,7 @@ export class LoanSearchComponent {
   );
 
   results: LoanSearchResult[] = [];
+  selectedLoan: LoanSearchResult | null = null;
   error = '';
 
   onSearch(): void {
@@ -61,10 +155,29 @@ export class LoanSearchComponent {
       return;
     }
 
-    this.api.search(this.searchForm.getRawValue()).subscribe({
-      next: (rows) => (this.results = rows),
+    const raw = this.searchForm.getRawValue();
+    this.api.search({
+      loanNum: raw.loanNum ?? undefined,
+      borrowerName: raw.borrowerName ?? undefined,
+      propertyAddress: raw.propertyAddress ?? undefined,
+    }).subscribe({
+      next: (rows) => {
+        this.results = rows;
+        this.selectedLoan = rows[0] ?? null;
+      },
       error: (e: Error) => (this.error = e.message),
     });
+  }
+
+  onClear(): void {
+    this.searchForm.reset({ loanNum: '', borrowerName: '', propertyAddress: '' });
+    this.results = [];
+    this.selectedLoan = null;
+    this.error = '';
+  }
+
+  selectLoan(row: LoanSearchResult): void {
+    this.selectedLoan = row;
   }
 
   onProcess(row: LoanSearchResult): void {
@@ -85,7 +198,19 @@ export class LoanSearchComponent {
     });
   }
 
+  onModify(row: LoanSearchResult): void {
+    this.router.navigateByUrl(`/loans/${row.loanNum}/modify`);
+  }
+
   goToAdd(): void {
     this.router.navigateByUrl('/loans/add');
+  }
+
+  coverageLabel(row: LoanSearchResult): string {
+    return row.propertyType === 'COMMERCIAL' ? 'Commercial' : 'Residential';
+  }
+
+  formatMoney(value: number): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value ?? 0);
   }
 }

@@ -29,7 +29,11 @@ public sealed class CreateLoanCommandHandler
             command.Request.LoanStatus,
             command.Request.PropertyValue,
             command.Request.UnpaidPrincipalBalance,
-            command.Request.PropertyState);
+            command.Request.PropertyState,
+            command.Request.QuoteReqd,
+            command.Request.EdiFlag,
+            command.Request.CycleType,
+            command.Request.LenderFormId);
 
         await _repo.AddAsync(entity, ct);
         return entity.LoanNum.Value;

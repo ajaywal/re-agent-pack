@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using TrackAllLoanMaintenanceLegacy.Application.Commands;
 using TrackAllLoanMaintenanceLegacy.Application.Queries;
 using TrackAllLoanMaintenanceLegacy.Domain.Ports;
@@ -11,7 +12,16 @@ using TrackAllLoanMaintenanceLegacy.Infrastructure.Repositories;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "TrackAll Loan Maintenance API",
+        Version = "v1",
+        Description = "UI-facing Presentation API for loan search, add, modify, quote processing, and 14E notification dispatch. Controllers delegate to Application command/query handlers; UI teams should integrate with these /api endpoints."
+    });
+    options.SupportNonNullableReferenceTypes();
+});
 
 // Infrastructure — Database (SQLite for local dev; swap for Azure SQL in production)
 builder.Services.AddDbContext<TrackAllLoanMaintenanceLegacyDbContext>(options =>
@@ -35,7 +45,13 @@ builder.Services.AddScoped<IKentuckyIsoAdapter, KentuckyIsoAdapter>();
 builder.Services.AddScoped<IEDINotificationAdapter, EDINotificationAdapter>();
 
 builder.Services.AddCors(opts => opts.AddDefaultPolicy(p =>
-    p.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod()));
+    p.WithOrigins(
+            "http://localhost:4200",
+            "http://127.0.0.1:4200",
+            "http://localhost:4300",
+            "http://127.0.0.1:4300")
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())

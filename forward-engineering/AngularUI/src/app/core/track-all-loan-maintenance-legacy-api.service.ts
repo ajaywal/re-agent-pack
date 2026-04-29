@@ -15,9 +15,9 @@ import {
 @Injectable({ providedIn: 'root' })
 export class TrackAllLoanMaintenanceLegacyApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseLoansUrl = 'http://localhost:5000/api/loans';
-  private readonly baseQuotesUrl = 'http://localhost:5000/api/quotes';
-  private readonly baseEdiUrl = 'http://localhost:5000/api/edi/notifications';
+  private readonly baseLoansUrl = 'http://localhost:5002/api/loans';
+  private readonly baseQuotesUrl = 'http://localhost:5002/api/quotes';
+  private readonly baseEdiUrl = 'http://localhost:5002/api/edi/notifications';
 
   search(criteria: LoanSearchCriteria) {
     return this.http

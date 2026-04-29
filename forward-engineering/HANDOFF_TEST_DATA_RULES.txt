@@ -1,0 +1,402 @@
+TrackAll Loan Maintenance - Handoff Test Data and Rule Scenarios
+================================================================
+
+Local URLs
+----------
+UI:
+  http://localhost:4300/loans/search
+
+Swagger:
+  http://localhost:5002/swagger/index.html
+
+Presentation API base:
+  http://localhost:5002
+
+Seed Loans
+----------
+Use these seeded records after the API starts and the local SQLite database is seeded.
+
+1. Happy path / KY ISO / EDI OK
+   Loan number: 1234567890
+   Borrower: Jordan Smith
+   Address: 120 Main St
+   State: KY
+   Property type: RESIDENTIAL
+   Status: ACTIVE
+   Property value: 250000
+   UPB: 200000
+   Quote required: Y
+   EDI flag: Y
+   Cycle type: STANDARD
+   Lender form ID: LT-F100
+
+2. EDI not enrolled
+   Loan number: 2234567890
+   Borrower: Casey Brown
+   Address: 89 Oak Ave
+   State: TX
+   Property type: COMMERCIAL
+   Status: ACTIVE
+   Property value: 525000
+   UPB: 500000
+   Quote required: N
+   EDI flag: N
+   Cycle type: INSTANT_ISSUE
+   Lender form ID: LT-F200
+
+3. Quote skipped, EDI eligible
+   Loan number: 3333333333
+   Borrower: Quote Skip
+   Address: 333 Cycle Rd
+   State: TX
+   Property type: RESIDENTIAL
+   Status: ACTIVE
+   Property value: 310000
+   UPB: 250000
+   Quote required: N
+   EDI flag: Y
+   Cycle type: STANDARD
+   Lender form ID: LT-F100
+
+4. Unapproved quote state
+   Loan number: 4444444444
+   Borrower: State Block
+   Address: 444 State Line
+   State: CA
+   Property type: RESIDENTIAL
+   Status: ACTIVE
+   Property value: 275000
+   UPB: 210000
+   Quote required: Y
+   EDI flag: Y
+   Cycle type: STANDARD
+   Lender form ID: LT-F100
+
+5. Instant Issue EDI suppression
+   Loan number: 5555555555
+   Borrower: Instant Issue
+   Address: 555 Fast Lane
+   State: TX
+   Property type: COMMERCIAL
+   Status: ACTIVE
+   Property value: 600000
+   UPB: 450000
+   Quote required: N
+   EDI flag: Y
+   Cycle type: INSTANT_ISSUE
+   Lender form ID: LT-F200
+
+
+Rule Test Scenarios
+-------------------
+
+R-L-001 - Search requires at least one criterion
+UI:
+  1. Open /loans/search.
+  2. Leave Loan number and Borrower name blank.
+  3. Click Search.
+Expected:
+  Enter at least one search value before searching.
+
+Swagger:
+  GET /api/loans/search
+  Do not provide LoanNum, BorrowerName, or PropertyAddress.
+Expected:
+  400 Bad Request with ApiErrorDto.
+
+
+R-L-002 - Loan number must be exactly 10 numeric digits
+UI:
+  1. Search with Loan number: 12345
+Expected:
+  UI validation blocks the search.
+
+Swagger:
+  GET /api/loans/search?LoanNum=12345
+Expected:
+  400 Bad Request with a rule-linked loan number error.
+
+
+R-L-003 - Quote requires an approved property state
+UI:
+  1. Search Loan number: 4444444444
+  2. Select the result.
+  3. Click Process selected loan.
+Expected:
+  Quote is not available for this property state.
+
+Swagger:
+  POST /api/quotes/loan/4444444444
+Expected:
+  400 Bad Request with ApiErrorDto.
+
+
+R-L-004 - Kentucky quote requires ISO pre-call
+UI:
+  1. Search Loan number: 1234567890
+  2. Select the result.
+  3. Click Process selected loan.
+Expected:
+  Process completes. KY ISO advisory lookup is called before quote generation.
+
+Swagger:
+  POST /api/quotes/loan/1234567890
+Expected:
+  200 OK with QuoteResultDto.
+
+
+R-L-005 - Quote generation only when QuoteReqd = Y
+UI:
+  1. Search Loan number: 3333333333
+  2. Click Process selected loan.
+Expected:
+  Quote is skipped because QuoteReqd = N; EDI can still dispatch because EdiFlag = Y.
+
+Swagger:
+  POST /api/quotes/loan/3333333333
+Expected:
+  200 OK with QuoteResultDto amount of 0.
+
+
+R-L-006 - 14E notifications require EDI enrollment
+UI:
+  1. Search Loan number: 2234567890
+  2. Click Process selected loan.
+Expected:
+  No EDI dispatch occurs from ProcessLoanResult because EdiFlag = N.
+
+Swagger:
+  POST /api/edi/notifications/14e
+  Body:
+    {
+      "loanNumber": "2234567890",
+      "formId": "LT-F200"
+    }
+Expected:
+  400 Bad Request: loan is not enrolled for EDI.
+
+
+R-L-007 - Instant Issue suppresses 14E
+UI:
+  1. Search Loan number: 5555555555
+  2. Click Process selected loan.
+Expected:
+  Instant Issue cycle suppresses 14E dispatch.
+
+Swagger:
+  POST /api/edi/notifications/14e
+  Body:
+    {
+      "loanNumber": "5555555555",
+      "formId": "LT-F200"
+    }
+Expected:
+  400 Bad Request: Instant Issue suppresses 14E dispatch.
+
+
+R-L-008 - 14E requires registered lender form ID
+Swagger:
+  POST /api/edi/notifications/14e
+  Body:
+    {
+      "loanNumber": "1234567890",
+      "formId": "BAD-FORM"
+    }
+Expected:
+  400 Bad Request: lender form ID is not allowed.
+
+Registered test form IDs:
+  LT-F100
+  LT-F200
+
+
+R-L-009 - Add requires loan number and borrower name
+UI:
+  1. Open /loans/add.
+  2. Leave Loan number or Borrower name blank.
+  3. Click Add loan.
+Expected:
+  UI blocks submission or API returns 400.
+
+Swagger:
+  POST /api/loans
+  Body:
+    {
+      "loanNum": "",
+      "borrowerName": "",
+      "propertyAddress": "900 Test Ave",
+      "propertyState": "TX",
+      "propertyType": "RESIDENTIAL",
+      "loanStatus": "ACTIVE",
+      "propertyValue": 250000,
+      "unpaidPrincipalBalance": 200000,
+      "quoteReqd": "Y",
+      "ediFlag": "Y",
+      "cycleType": "STANDARD",
+      "lenderFormId": "LT-F100"
+    }
+Expected:
+  400 Bad Request.
+
+
+R-L-010 - Add requires positive property value
+Swagger:
+  POST /api/loans
+  Body:
+    {
+      "loanNum": "6666666666",
+      "borrowerName": "Value Block",
+      "propertyAddress": "666 Value Rd",
+      "propertyState": "TX",
+      "propertyType": "RESIDENTIAL",
+      "loanStatus": "ACTIVE",
+      "propertyValue": 0,
+      "unpaidPrincipalBalance": 200000,
+      "quoteReqd": "Y",
+      "ediFlag": "Y",
+      "cycleType": "STANDARD",
+      "lenderFormId": "LT-F100"
+    }
+Expected:
+  400 Bad Request.
+
+
+R-L-011 - Add requires property address
+Swagger:
+  POST /api/loans
+  Body:
+    {
+      "loanNum": "6666666667",
+      "borrowerName": "Address Block",
+      "propertyAddress": "",
+      "propertyState": "TX",
+      "propertyType": "RESIDENTIAL",
+      "loanStatus": "ACTIVE",
+      "propertyValue": 250000,
+      "unpaidPrincipalBalance": 200000,
+      "quoteReqd": "Y",
+      "ediFlag": "Y",
+      "cycleType": "STANDARD",
+      "lenderFormId": "LT-F100"
+    }
+Expected:
+  400 Bad Request.
+
+
+R-L-012 - Add requires ACTIVE status and positive UPB
+Swagger:
+  POST /api/loans
+  Body:
+    {
+      "loanNum": "6666666668",
+      "borrowerName": "Status Block",
+      "propertyAddress": "668 Status Rd",
+      "propertyState": "TX",
+      "propertyType": "RESIDENTIAL",
+      "loanStatus": "CLOSED",
+      "propertyValue": 250000,
+      "unpaidPrincipalBalance": 0,
+      "quoteReqd": "Y",
+      "ediFlag": "Y",
+      "cycleType": "STANDARD",
+      "lenderFormId": "LT-F100"
+    }
+Expected:
+  400 Bad Request.
+
+
+R-L-013 - Property type must be RESIDENTIAL or COMMERCIAL
+Swagger:
+  POST /api/loans
+  Body:
+    {
+      "loanNum": "6666666669",
+      "borrowerName": "Type Block",
+      "propertyAddress": "669 Type Rd",
+      "propertyState": "TX",
+      "propertyType": "AGRICULTURAL",
+      "loanStatus": "ACTIVE",
+      "propertyValue": 250000,
+      "unpaidPrincipalBalance": 200000,
+      "quoteReqd": "Y",
+      "ediFlag": "Y",
+      "cycleType": "STANDARD",
+      "lenderFormId": "LT-F100"
+    }
+Expected:
+  400 Bad Request.
+
+
+R-L-014 - Modify enforces governed updates
+UI:
+  1. Search Loan number: 1234567890.
+  2. Click Modify loan.
+  3. Try to save Loan status: CLOSED while current status is ACTIVE.
+  4. Or increase UPB above 200000.
+Expected:
+  400 Bad Request: update violates modification rules.
+
+Swagger:
+  PUT /api/loans/1234567890
+  Body:
+    {
+      "loanNum": "1234567890",
+      "borrowerName": "Jordan Smith",
+      "propertyAddress": "120 Main St",
+      "loanStatus": "CLOSED",
+      "unpaidPrincipalBalance": 210000,
+      "propertyValue": 250000
+    }
+Expected:
+  400 Bad Request.
+
+Valid modify example:
+  PUT /api/loans/1234567890
+  Body:
+    {
+      "loanNum": "1234567890",
+      "borrowerName": "Jordan Smith",
+      "propertyAddress": "120 Main St Updated",
+      "loanStatus": "DELINQUENT",
+      "unpaidPrincipalBalance": 190000,
+      "propertyValue": 250000
+    }
+Expected:
+  200 OK with LoanMutationResultDto.
+
+
+Useful Happy Path Add Payload
+-----------------------------
+POST /api/loans
+Body:
+  {
+    "loanNum": "7777777777",
+    "borrowerName": "Valid Create",
+    "propertyAddress": "777 Good Way",
+    "propertyState": "TX",
+    "propertyType": "RESIDENTIAL",
+    "loanStatus": "ACTIVE",
+    "propertyValue": 250000,
+    "unpaidPrincipalBalance": 200000,
+    "quoteReqd": "Y",
+    "ediFlag": "Y",
+    "cycleType": "STANDARD",
+    "lenderFormId": "LT-F100"
+  }
+Expected:
+  200 OK with:
+    {
+      "loanNumber": "7777777777"
+    }
+
+
+Notes For UI Teams
+------------------
+These are the public UI-facing endpoints exposed by the Presentation layer:
+  GET  /api/loans/search
+  POST /api/loans
+  PUT  /api/loans/{loanNumber}
+  POST /api/quotes/loan/{loanNumber}
+  POST /api/edi/notifications/14e
+
+The Application command/query handlers are internal backend services and are not separate HTTP endpoints.

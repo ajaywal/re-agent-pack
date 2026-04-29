@@ -43,7 +43,49 @@ public static class TrackAllLoanMaintenanceLegacyDbSeeder
             cycleType: "INSTANT_ISSUE",
             lenderFormId: "LT-F200");
 
-        await db.Loans.AddRangeAsync(seedA, seedB);
+        var quoteNotRequired = LoanAggregate.Create(
+            loanNum: "3333333333",
+            borrowerName: "Quote Skip",
+            propertyAddress: "333 Cycle Rd",
+            propertyType: "RESIDENTIAL",
+            loanStatus: "ACTIVE",
+            propertyValue: 310000m,
+            unpaidPrincipalBalance: 250000m,
+            propertyState: "TX",
+            quoteReqd: "N",
+            ediFlag: "Y",
+            cycleType: "STANDARD",
+            lenderFormId: "LT-F100");
+
+        var unapprovedQuoteState = LoanAggregate.Create(
+            loanNum: "4444444444",
+            borrowerName: "State Block",
+            propertyAddress: "444 State Line",
+            propertyType: "RESIDENTIAL",
+            loanStatus: "ACTIVE",
+            propertyValue: 275000m,
+            unpaidPrincipalBalance: 210000m,
+            propertyState: "CA",
+            quoteReqd: "Y",
+            ediFlag: "Y",
+            cycleType: "STANDARD",
+            lenderFormId: "LT-F100");
+
+        var instantIssueEdi = LoanAggregate.Create(
+            loanNum: "5555555555",
+            borrowerName: "Instant Issue",
+            propertyAddress: "555 Fast Lane",
+            propertyType: "COMMERCIAL",
+            loanStatus: "ACTIVE",
+            propertyValue: 600000m,
+            unpaidPrincipalBalance: 450000m,
+            propertyState: "TX",
+            quoteReqd: "N",
+            ediFlag: "Y",
+            cycleType: "INSTANT_ISSUE",
+            lenderFormId: "LT-F200");
+
+        await db.Loans.AddRangeAsync(seedA, seedB, quoteNotRequired, unapprovedQuoteState, instantIssueEdi);
         await db.SaveChangesAsync();
     }
 }

@@ -6,6 +6,7 @@ namespace TrackAllLoanMaintenanceLegacy.Presentation.Controllers;
 
 [ApiController]
 [Route("api/quotes")]
+[Produces("application/json")]
 public sealed class QuoteController : ControllerBase
 {
     private readonly ProcessLoanResultCommandHandler _handler;
@@ -13,7 +14,10 @@ public sealed class QuoteController : ControllerBase
     public QuoteController(ProcessLoanResultCommandHandler handler) => _handler = handler;
 
     [HttpPost("loan/{loanNumber}")]
-    public async Task<ActionResult<object>> GetLoanQuote(string loanNumber, CancellationToken ct)
+    [ProducesResponseType(typeof(QuoteResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorDto), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorDto), StatusCodes.Status504GatewayTimeout)]
+    public async Task<ActionResult<QuoteResultDto>> GetLoanQuote(string loanNumber, CancellationToken ct)
     {
         // 400 — Property state not approved for quote — R-L-003
         // 400 — Quote not required by cycle flag — R-L-005
@@ -30,11 +34,11 @@ public sealed class QuoteController : ControllerBase
         }
         catch (TimeoutException ex)
         {
-            return StatusCode(StatusCodes.Status504GatewayTimeout, new { error = ex.Message });
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new ApiErrorDto { Error = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ApiErrorDto { Error = ex.Message });
         }
     }
 }

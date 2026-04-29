@@ -80,8 +80,8 @@ public sealed class TrackAllLoanMaintenanceLegacyDbContext : DbContext
         audit.Property(x => x.Action).HasMaxLength(30).IsRequired();
         audit.Property(x => x.ActorId).HasMaxLength(100);
         audit.Property(x => x.TimestampUtc).HasColumnType("datetime2").IsRequired();
-        audit.Property(x => x.BeforeJson).HasColumnType("nvarchar(max)");
-        audit.Property(x => x.AfterJson).HasColumnType("nvarchar(max)");
+        audit.Property(x => x.BeforeJson);
+        audit.Property(x => x.AfterJson);
         audit.Property(x => x.RuleId).HasMaxLength(20);
     }
 }

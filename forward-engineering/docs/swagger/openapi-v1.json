@@ -1,0 +1,489 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "TrackAll Loan Maintenance API",
+    "description": "UI-facing Presentation API for loan search, add, modify, quote processing, and 14E notification dispatch. Controllers delegate to Application command/query handlers; UI teams should integrate with these /api endpoints.",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/edi/notifications/14e": {
+      "post": {
+        "tags": [
+          "EdiNotification"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Dispatch14ERequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Dispatch14ERequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Dispatch14ERequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdiDispatchResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/loans": {
+      "post": {
+        "tags": [
+          "LoanCommand"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLoanRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLoanRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddLoanRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanMutationResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/loans/{loanNumber}": {
+      "put": {
+        "tags": [
+          "LoanCommand"
+        ],
+        "parameters": [
+          {
+            "name": "loanNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyLoanRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyLoanRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyLoanRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanMutationResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/loans/search": {
+      "get": {
+        "tags": [
+          "LoanQuery"
+        ],
+        "parameters": [
+          {
+            "name": "LoanNum",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "BorrowerName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PropertyAddress",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanSearchResultDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quotes/loan/{loanNumber}": {
+      "post": {
+        "tags": [
+          "Quote"
+        ],
+        "parameters": [
+          {
+            "name": "loanNumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddLoanRequestDto": {
+        "type": "object",
+        "properties": {
+          "loanNum": {
+            "type": "string"
+          },
+          "borrowerName": {
+            "type": "string"
+          },
+          "propertyAddress": {
+            "type": "string"
+          },
+          "propertyState": {
+            "type": "string",
+            "nullable": true
+          },
+          "propertyType": {
+            "type": "string"
+          },
+          "loanStatus": {
+            "type": "string"
+          },
+          "propertyValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "unpaidPrincipalBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "quoteReqd": {
+            "type": "string",
+            "nullable": true
+          },
+          "ediFlag": {
+            "type": "string",
+            "nullable": true
+          },
+          "cycleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "lenderFormId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiErrorDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Dispatch14ERequestDto": {
+        "type": "object",
+        "properties": {
+          "loanNumber": {
+            "type": "string"
+          },
+          "formId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EdiDispatchResultDto": {
+        "type": "object",
+        "properties": {
+          "loanNumber": {
+            "type": "string"
+          },
+          "dispatchId": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoanMutationResultDto": {
+        "type": "object",
+        "properties": {
+          "loanNumber": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LoanSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "loanNum": {
+            "type": "string"
+          },
+          "borrowerName": {
+            "type": "string"
+          },
+          "propertyAddress": {
+            "type": "string"
+          },
+          "propertyState": {
+            "type": "string"
+          },
+          "propertyType": {
+            "type": "string"
+          },
+          "loanStatus": {
+            "type": "string"
+          },
+          "propertyValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "unpaidPrincipalBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "quoteReqd": {
+            "type": "string"
+          },
+          "ediFlag": {
+            "type": "string"
+          },
+          "cycleType": {
+            "type": "string"
+          },
+          "lenderFormId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModifyLoanRequestDto": {
+        "type": "object",
+        "properties": {
+          "loanNum": {
+            "type": "string"
+          },
+          "borrowerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "propertyAddress": {
+            "type": "string"
+          },
+          "loanStatus": {
+            "type": "string"
+          },
+          "unpaidPrincipalBalance": {
+            "type": "number",
+            "format": "double"
+          },
+          "propertyValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuoteResultDto": {
+        "type": "object",
+        "properties": {
+          "loanNumber": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

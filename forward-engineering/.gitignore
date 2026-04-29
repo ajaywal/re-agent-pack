@@ -1,0 +1,41 @@
+# ── .NET build outputs ──────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ── Visual Studio IDE ────────────────────────
+.vs/
+*.rsuser
+.idea/
+
+# ── Angular / Node ───────────────────────────
+node_modules/
+dist/
+.angular/
+.npm-cache/
+.cache/
+*.js.map
+
+# ── Runtime logs (aspnetcore dev runner) ─────
+.api*.log
+.api*.err.log
+.ui*.log
+.ui*.err.log
+
+# ── OS / Windows artifacts ───────────────────
+*:Zone.Identifier
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ── EF Core local DB (dev only) ──────────────
+*.db
+*.db-shm
+*.db-wal
+
+# ── Secrets / config overrides ───────────────
+appsettings.Development.json
+secrets.json

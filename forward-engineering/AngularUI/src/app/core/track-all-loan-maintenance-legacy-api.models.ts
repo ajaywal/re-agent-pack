@@ -9,6 +9,10 @@ export interface LoanSearchResult {
   borrowerName: string;
   propertyAddress: string;
   propertyState: string;     // R-L-003,R-L-004
+  propertyType: string;      // R-L-013
+  loanStatus: string;        // R-L-012,R-L-014
+  propertyValue: number;     // R-L-010
+  unpaidPrincipalBalance: number; // R-L-012,R-L-014
   quoteReqd: string;         // R-L-005
   ediFlag: string;           // R-L-006
   cycleType: string;         // R-L-007

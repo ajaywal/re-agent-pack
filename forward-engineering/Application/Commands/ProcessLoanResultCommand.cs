@@ -45,8 +45,11 @@ public sealed class ProcessLoanResultCommandHandler
             quote = await _rataBase.GetQuoteAsync(entity.LoanNum.Value, entity.PropertyState ?? string.Empty, ct);
         }
 
-        entity.ValidateEdiEligibility();
-        dispatch = await _edi.Dispatch14EAsync(entity.LoanNum.Value, entity.LenderFormId?.Value ?? string.Empty, ct);
+        if (string.Equals(entity.EdiFlag, "Y", StringComparison.OrdinalIgnoreCase))
+        {
+            entity.ValidateEdiEligibility();
+            dispatch = await _edi.Dispatch14EAsync(entity.LoanNum.Value, entity.LenderFormId?.Value ?? string.Empty, ct);
+        }
 
         return new LoanProcessResultDto
         {
