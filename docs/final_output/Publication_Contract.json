@@ -1,0 +1,278 @@
+{
+  "projectName": "TrackAllLoanMaintenanceLegacy",
+  "generatedAt": "2026-04-27",
+  "groundingStats": {
+    "source-grounded": 8,
+    "code-grounded": 34,
+    "inferred": 11,
+    "placeholder": 1
+  },
+  "documents": {
+    "functionalRequirements": {
+      "title": "Reverse-Engineered Business Requirements",
+      "sections": [
+        {
+          "id": "1",
+          "heading": "Introduction",
+          "level": 1,
+          "content": "Purpose, scope, reading guidance, and grounding definitions for the Loan Maintenance artifact-derived requirements set.",
+          "grounding": "source-grounded"
+        },
+        {
+          "id": "2",
+          "heading": "Business Context",
+          "level": 1,
+          "content": "Subdomain placement, registry, scoped slice statement, and current-state legacy system context diagram.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "3",
+          "heading": "Functional Requirements by Subdomain",
+          "level": 1,
+          "table": {
+            "headers": ["ID", "Requirement", "Business Rule Ref", "Grounding", "Review Priority"],
+            "rows": [
+              ["FR-001", "Require at least one search criterion", "R-L-001", "code-grounded", "Standard"],
+              ["FR-014", "Enforce governed modify constraints", "R-L-014", "unresolved", "Priority"]
+            ]
+          },
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "4",
+          "heading": "Business Rules Register",
+          "level": 1,
+          "content": "Rule register grouped by functional area using plain-English statements with Review Priority stamps.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "4.7",
+          "heading": "EDI Routing",
+          "level": 2,
+          "functionalArea": "EDI Routing",
+          "table": {
+            "headers": ["Rule ID", "Rule Statement", "Rule Type", "Grounding", "Review Priority"],
+            "rows": [
+              ["R-L-008", "Only pre-registered lender form IDs are allowed for 14E dispatch.", "Validation", "sample-only", "Priority"]
+            ]
+          },
+          "grounding": "inferred"
+        },
+        {
+          "id": "4.11",
+          "heading": "Loan Modification Governance",
+          "level": 2,
+          "functionalArea": "Loan Modification Governance",
+          "table": {
+            "headers": ["Rule ID", "Rule Statement", "Rule Type", "Grounding", "Review Priority"],
+            "rows": [
+              ["R-L-014", "Existing loans can be modified only through approved status progression, non-increasing balance, and non-blank address while keeping loan number unchanged.", "State/routing", "unresolved", "Priority"]
+            ]
+          },
+          "grounding": "inferred"
+        },
+        {
+          "id": "5",
+          "heading": "Field Reference",
+          "level": 1,
+          "content": "Key field meanings, constraints, and target validation precedence ordering with unresolved note for modify server ordering.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "6",
+          "heading": "Open Items and Ambiguities",
+          "level": 1,
+          "content": "Open ambiguities A-001 and A-002 retained as unresolved questions; no deferred rules currently present.",
+          "grounding": "source-grounded"
+        },
+        {
+          "id": "7",
+          "heading": "Non-Functional Considerations",
+          "level": 1,
+          "content": "Performance, security, and accessibility implications relevant to modernization implementation.",
+          "grounding": "inferred"
+        },
+        {
+          "id": "8",
+          "heading": "Traceability Summary",
+          "level": 1,
+          "table": {
+            "headers": ["Rule ID", "Functional Area", "Review Priority", "Legacy Source", "Integration System", "Candidate API / Service", "FRD §", "Blueprint Spec", "Test Case ID"],
+            "rows": [
+              ["R-L-001", "Loan Search", "Standard", "sample-project/src/LoanRules.cpp::ValidateLoanForSearch", "TKA900", "GET /api/loans/search", "4.1", "UI-001 + SVC-001", "given_no_search_criteria_then_search_blocked_R-L-001"],
+              ["R-L-014", "Loan Modification Governance", "Priority", "sample-project/src/LoanRules.cpp::ValidateLoanForModify", "TKA902", "PUT /api/loans/{loanNumber}", "4.11", "UI-003 + SVC-002 + DB-001", "given_invalid_modify_transition_then_update_rejected_R-L-014"]
+            ]
+          },
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "9",
+          "heading": "Appendix",
+          "level": 1,
+          "content": "Grounding label reference and source pointer list including glossary reference.",
+          "grounding": "source-grounded"
+        }
+      ],
+      "openItems": [
+        {
+          "id": "A-001",
+          "description": "Property-address clear rule in TKA902 appears documented but not explicitly failed server-side in sample path."
+        },
+        {
+          "id": "A-002",
+          "description": "Lender target form source is sample-seeded and lacks table-backed production evidence in current artifact set."
+        }
+      ]
+    },
+    "technicalDocumentation": {
+      "title": "Reverse-Engineered Technical Specification",
+      "sections": [
+        {
+          "id": "1",
+          "heading": "Overview",
+          "level": 1,
+          "content": "Audience, scope, and modernization program context for the extracted Loan Maintenance slice.",
+          "grounding": "source-grounded"
+        },
+        {
+          "id": "2",
+          "heading": "Current State Architecture",
+          "level": 1,
+          "content": "Legacy stack, subdomain placement, and analyzed component list mapped from source artifacts.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "3",
+          "heading": "Reverse-Engineering Approach",
+          "level": 1,
+          "content": "Governed extraction method, governance model, and business validation workflow.",
+          "grounding": "source-grounded"
+        },
+        {
+          "id": "4",
+          "heading": "Screen and Control Analysis",
+          "level": 1,
+          "table": {
+            "headers": ["Field", "Control type", "Business meaning", "Constraints", "Audit trigger"],
+            "rows": [
+              ["LOAN_NUM", "EditText/StaticText", "Loan identity", "10-digit numeric, immutable in modify", "Audit context key"],
+              ["PROPERTY_STATE", "EditText", "Quote eligibility dimension", "Approved state list; KY branch", "Quote decision trace"]
+            ]
+          },
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "5",
+          "heading": "Business Rule Extraction",
+          "level": 1,
+          "content": "Technical rule statements grouped by functional area with file::function evidence.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "5.7",
+          "heading": "EDI Routing",
+          "level": 2,
+          "functionalArea": "EDI Routing",
+          "table": {
+            "headers": ["Rule ID", "Rule Statement", "Evidence (file::function)", "Grounding", "Confidence"],
+            "rows": [
+              ["R-L-008", "LoadLenderTargetForms seeded values gate dispatch eligibility", "sample-project/src/LoanRules.cpp::LoadLenderTargetForms", "sample-only", "Medium"]
+            ]
+          },
+          "grounding": "inferred"
+        },
+        {
+          "id": "5.11",
+          "heading": "Loan Modification Governance",
+          "level": 2,
+          "functionalArea": "Loan Modification Governance",
+          "table": {
+            "headers": ["Rule ID", "Rule Statement", "Evidence (file::function)", "Grounding", "Confidence"],
+            "rows": [
+              ["R-L-014", "ValidateLoanForModify and TKA902 enforce controlled update semantics", "sample-project/src/LoanRules.cpp::ValidateLoanForModify", "unresolved", "Medium"]
+            ]
+          },
+          "grounding": "inferred"
+        },
+        {
+          "id": "6",
+          "heading": "Dependency and Flow Analysis",
+          "level": 1,
+          "table": {
+            "headers": ["Action", "Handler", "Service", "Repository", "Gateway"],
+            "rows": [
+              ["Search loans", "LoanSearchDlg::OnBnClickedSearch", "ValidateLoanForSearch", "TKA900", "CTMELibAdapter"],
+              ["Add loan", "LoanAddDlg::OnBnClickedAdd", "ValidateLoanForAdd", "TKA901", "CTMELibAdapter"]
+            ]
+          },
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "7",
+          "heading": "Candidate API Estimation",
+          "level": 1,
+          "table": {
+            "headers": ["Action", "Candidate REST API", "HTTP method", "Service group", "Confidence", "Grounding"],
+            "rows": [
+              ["Search loans", "/api/loans/search", "GET", "Loan Query Service", "High", "code-grounded"],
+              ["Dispatch 14E", "/api/edi/notifications/14e", "POST", "EDI Notification Service", "High", "code-grounded"]
+            ]
+          },
+          "grounding": "inferred"
+        },
+        {
+          "id": "8",
+          "heading": "Candidate Service Decomposition",
+          "level": 1,
+          "content": "Candidate services and boundaries aligned to modern target stack constraints.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "9",
+          "heading": "Target State Mapping",
+          "level": 1,
+          "content": "Legacy component to modern component mapping for UI, API, data, and integration adapters.",
+          "grounding": "inferred"
+        },
+        {
+          "id": "10",
+          "heading": "Data and Integration Considerations",
+          "level": 1,
+          "content": "Migration-sensitive fields, constraints, and integration touchpoints requiring preservation.",
+          "grounding": "code-grounded"
+        },
+        {
+          "id": "11",
+          "heading": "Governance Summary",
+          "level": 1,
+          "content": "Priority vs Standard counts, open ambiguities, rerun status, and coverage checklist status.",
+          "grounding": "source-grounded"
+        },
+        {
+          "id": "12",
+          "heading": "Risks and Assumptions",
+          "level": 1,
+          "content": "Ambiguity-driven risks and candidate-contract assumptions.",
+          "grounding": "inferred"
+        },
+        {
+          "id": "13",
+          "heading": "Appendix",
+          "level": 1,
+          "content": "Grounding labels and source file index.",
+          "grounding": "source-grounded"
+        }
+      ],
+      "openItems": [
+        {
+          "id": "A-001",
+          "description": "Property-address clear rule in TKA902 appears documented but not explicitly failed server-side in sample path."
+        },
+        {
+          "id": "A-002",
+          "description": "Lender target form source is sample-seeded and lacks table-backed production evidence in current artifact set."
+        }
+      ]
+    }
+  }
+}

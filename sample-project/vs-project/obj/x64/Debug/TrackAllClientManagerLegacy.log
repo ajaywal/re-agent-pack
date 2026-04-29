@@ -1,0 +1,17 @@
+﻿  TrackAllClientManagerLegacy.cpp
+  LoanRules.cpp
+  LoanSearchDlg.cpp
+  LoanAddDlg.cpp
+  LoanModifyDlg.cpp
+  TMELibAdapter.cpp
+  RataBaseServiceAdapter.cpp
+  EDINotificationWriter.cpp
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  TrackAllClientManagerLegacy.vcxproj -> \\wsl.localhost\Ubuntu\home\telidev\CleanUp\re-agent-pack\sample-project\vs-project\bin\x64\Debug\TrackAllClientManagerLegacy.exe

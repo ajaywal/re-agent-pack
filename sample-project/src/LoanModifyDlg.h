@@ -35,6 +35,9 @@ protected:
     virtual void DoDataExchange(CDataExchange* pDX);
     virtual BOOL OnInitDialog();
     afx_msg void OnBnClickedModify();
+    afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+    afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+    afx_msg BOOL OnEraseBkgnd(CDC* pDC);
     DECLARE_MESSAGE_MAP()
 
 private:
@@ -55,4 +58,11 @@ private:
 
     // Read-only display — loan number is shown but cannot be edited
     CString m_strLoanNumDisplay;
+
+    CLoan  m_loanModified;
+
+    CBrush m_brEditBackground;
+
+public:
+    const CLoan& GetModifiedLoan() const { return m_loanModified; }
 };

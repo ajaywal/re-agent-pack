@@ -25,11 +25,6 @@ Thumbs.db
 # Windows Zone.Identifier sidecar files
 *:Zone.Identifier
 
-# Runtime-generated RE Agent Pack files (baseline copies in agent-flow/baseline/ are committed)
-artifacts/session_state.governance.md
-artifacts/source_checksums.governance.md
-artifacts/source_checksums_prev.governance.md
-docs/final_output/
 
 # Python virtualenvs (local development only — never distribute)
 .venv/

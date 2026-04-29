@@ -1,7 +1,15 @@
 #include "LoanAddDlg.h"
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib")
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
 
 BEGIN_MESSAGE_MAP(CLoanAddDlg, CDialog)
     ON_BN_CLICKED(IDC_BUTTON_LOAN_ADD, OnBnClickedAdd)
+    ON_WM_CTLCOLOR()
+    ON_WM_DRAWITEM()
+    ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 CLoanAddDlg::CLoanAddDlg(
@@ -37,6 +45,11 @@ void CLoanAddDlg::DoDataExchange(CDataExchange* pDX)
 BOOL CLoanAddDlg::OnInitDialog()
 {
     CDialog::OnInitDialog();
+
+    m_brEditBackground.CreateSolidBrush(RGB(30, 42, 58));
+
+    COLORREF clrCaption = RGB(10, 15, 26);
+    DwmSetWindowAttribute(m_hWnd, DWMWA_CAPTION_COLOR, &clrCaption, sizeof(clrCaption));
 
     // Pre-populate with a representative seed loan so the walkthrough can
     // demonstrate the Add Loan validation path without manual data entry.
@@ -152,4 +165,87 @@ void CLoanAddDlg::OnBnClickedAdd()
         MB_OK | MB_ICONINFORMATION);
 
     EndDialog(IDOK);
+}
+
+BOOL CLoanAddDlg::OnEraseBkgnd(CDC* pDC)
+{
+    CRect rc;
+    GetClientRect(&rc);
+    TRIVERTEX v[2] = {
+        { rc.left,  rc.top,    13<<8, 17<<8, 23<<8, 0 },
+        { rc.right, rc.bottom, 28<<8, 35<<8, 51<<8, 0 }
+    };
+    GRADIENT_RECT gr = { 0, 1 };
+    pDC->GradientFill(v, 2, &gr, 1, GRADIENT_FILL_RECT_V);
+    return TRUE;
+}
+
+HBRUSH CLoanAddDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+    if (nCtlColor == CTLCOLOR_DLG)
+    {
+        return (HBRUSH)GetStockObject(NULL_BRUSH);
+    }
+    if (nCtlColor == CTLCOLOR_STATIC)
+    {
+        pDC->SetBkMode(TRANSPARENT);
+        pDC->SetTextColor(RGB(192, 200, 216));
+        return (HBRUSH)GetStockObject(NULL_BRUSH);
+    }
+    if (nCtlColor == CTLCOLOR_EDIT)
+    {
+        pDC->SetTextColor(RGB(192, 200, 216));
+        pDC->SetBkColor(RGB(30, 42, 58));
+        return m_brEditBackground;
+    }
+    return CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
+}
+
+void CLoanAddDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lp)
+{
+    if (lp->CtlType != ODT_BUTTON) { CDialog::OnDrawItem(nIDCtl, lp); return; }
+
+    CDC dc;
+    dc.Attach(lp->hDC);
+    CRect rc(lp->rcItem);
+    bool bPressed = (lp->itemState & ODS_SELECTED) != 0;
+
+    dc.FillSolidRect(rc, bPressed ? RGB(30, 50, 80) : RGB(46, 74, 106));
+
+    // Gloss stripe — top 40%
+    CRect rcGloss(rc.left + 1, rc.top + 1, rc.right - 1, rc.top + rc.Height() * 2 / 5);
+    TRIVERTEX gv[2] = {
+        { rcGloss.left,  rcGloss.top,    120<<8, 180<<8, 255<<8, 0 },
+        { rcGloss.right, rcGloss.bottom,  60<<8, 120<<8, 200<<8, 0 }
+    };
+    GRADIENT_RECT gg = { 0, 1 };
+    dc.GradientFill(gv, 2, &gg, 1, GRADIENT_FILL_RECT_V);
+
+    CPen penBorder(PS_SOLID, 1, RGB(85, 153, 255));
+    CPen* pOld = dc.SelectObject(&penBorder);
+    dc.MoveTo(rc.left,      rc.bottom - 1);
+    dc.LineTo(rc.left,      rc.top);
+    dc.LineTo(rc.right - 1, rc.top);
+    dc.LineTo(rc.right - 1, rc.bottom - 1);
+    dc.LineTo(rc.left,      rc.bottom - 1);
+    dc.SelectObject(pOld);
+
+    CWnd* pBtn = GetDlgItem(nIDCtl);
+    CString str;
+    if (pBtn) pBtn->GetWindowText(str);
+
+    CRect rcTxt = rc;
+    if (bPressed) rcTxt.OffsetRect(1, 1);
+    dc.SetBkMode(TRANSPARENT);
+    dc.SetTextColor(RGB(255, 255, 255));
+    CFont* pOldFont = dc.SelectObject(GetFont());
+    dc.DrawText(str, rcTxt, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    dc.SelectObject(pOldFont);
+
+    if (lp->itemState & ODS_FOCUS)
+    {
+        CRect rcF = rc; rcF.DeflateRect(3, 3);
+        dc.DrawFocusRect(rcF);
+    }
+    dc.Detach();
 }

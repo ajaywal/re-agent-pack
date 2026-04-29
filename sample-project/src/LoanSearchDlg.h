@@ -42,6 +42,9 @@ protected:
     afx_msg void OnBnClickedAddLoan();
     afx_msg void OnBnClickedModifyLoan();
     afx_msg void OnNMDblclkListResults(NMHDR* pNMHDR, LRESULT* pResult);
+    afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+    afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+    afx_msg BOOL OnEraseBkgnd(CDC* pDC);
     DECLARE_MESSAGE_MAP()
 
 private:
@@ -63,4 +66,6 @@ private:
     CListCtrl m_lstResults;
 
     std::vector<CLoan> m_searchResults;
+
+    CBrush m_brEditBackground;
 };

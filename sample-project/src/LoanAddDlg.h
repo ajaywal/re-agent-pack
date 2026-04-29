@@ -37,6 +37,9 @@ protected:
     virtual void DoDataExchange(CDataExchange* pDX);
     virtual BOOL OnInitDialog();
     afx_msg void OnBnClickedAdd();
+    afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+    afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+    afx_msg BOOL OnEraseBkgnd(CDC* pDC);
     DECLARE_MESSAGE_MAP()
 
 private:
@@ -57,4 +60,6 @@ private:
     CString m_strLoanStatus;
     int     m_nPropertyValue;
     long    m_nUpb;
+
+    CBrush m_brEditBackground;
 };
