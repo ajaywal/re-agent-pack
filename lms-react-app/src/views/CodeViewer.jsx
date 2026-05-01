@@ -1,322 +1,400 @@
 import { useState } from 'react';
 
-const CPP_SOURCE = `// lnmain.cpp — Assurant LMS Win32/MFC Frontend (~900 lines)
-// HP NonStop C++ application — Pathway IPC client
+const CPP_SOURCE = `// LoanRules.cpp — CLoanRules business rule enforcement
+// All 14 rules (R-L-001 to R-L-014) centralised in this class.
+// Rule origins: UI input constraints, carrier eligibility config,
+// Tandem LSS_LOAN_T/LSS_CYCLE_STEP_T column semantics.
 
-#include "stdafx.h"
-#include "LoanApp.h"
-#include "pathway_ipc.h"
-#include "validation.h"
-#include "dialogs.h"
+#include "LoanRules.h"
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-#define PATHWAY_SERVER  "QLOTCALC_SRV"
-#define IPC_TIMEOUT_MS  5000
-#define MAX_LOAN_AMOUNT 5000000.00
-#define MIN_LOAN_AMOUNT 1.00
-
-// ─── Main Application Entry ───────────────────────────────────────────────────
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR lpCmd, int nShow) {
-    CLoanApp app;
-    return app.Run(hInst, lpCmd, nShow);
+CLoanRules::CLoanRules() {
+    LoadApprovedCarrierStates();
+    LoadLenderTargetForms();
 }
 
-// ─── Main Menu Handler ────────────────────────────────────────────────────────
-void CLoanApp::ShowMainMenu() {
-    CMainMenuDlg dlg(m_pMainWnd);
-    int result = dlg.DoModal();
-    switch (result) {
-        case IDC_BTN_SEARCH: search_loan_screen(); break;
-        case IDC_BTN_CREATE: create_loan_screen(); break;
-        case IDC_BTN_UPDATE: update_loan_screen(); break;
-        case IDCANCEL:       ExitApplication();    break;
-    }
+void CLoanRules::LoadApprovedCarrierStates() {
+    // 23 approved states for RataBase carrier coverage (R-L-003)
+    const LPCTSTR codes[] = {
+        _T("AL"),_T("AZ"),_T("CA"),_T("CO"),_T("FL"),_T("GA"),
+        _T("IL"),_T("IN"),_T("KY"),_T("MD"),_T("MI"),_T("MN"),
+        _T("MO"),_T("NC"),_T("NJ"),_T("NY"),_T("OH"),_T("PA"),
+        _T("SC"),_T("TN"),_T("TX"),_T("VA"),_T("WI")
+    };
+    int n = sizeof(codes)/sizeof(codes[0]);
+    for (int i = 0; i < n; i++) m_approvedCarrierStates.push_back(codes[i]);
 }
 
-// ─── Create Loan Screen ───────────────────────────────────────────────────────
-// Lines 280–380
-void CLoanApp::create_loan_screen() {
-    CCreateLoanDlg dlg(m_pMainWnd);
-    if (dlg.DoModal() != IDOK) return;
-
-    // BR-003: Client-side validation before IPC
-    LOAN_INPUT input = dlg.GetInput();
-    int rc = validate_loan_input_cpp(input);
-    if (rc != 0) {
-        CString msg = MapReturnCode(rc);
-        MessageBox(NULL, msg, "Validation Error", MB_OK | MB_ICONWARNING);
-        return;
-    }
-
-    // HP Pathway IPC call → QLOTCALC COBOL server
-    QUOTE_RESULT quote;
-    rc = PATHWAY_WRITEREAD(PATHWAY_SERVER, &input, sizeof(input),
-                           &quote, sizeof(quote), IPC_TIMEOUT_MS);
-    if (rc != 0) {
-        MessageBox(NULL, "Pathway IPC error — server unavailable", "IPC Error", MB_OK | MB_ICONERROR);
-        return;
-    }
-
-    // BR-007: Explicit confirmation dialog required
-    CConfirmDialog confirm(m_pMainWnd, &quote);
-    if (confirm.DoModal() != IDOK) return;
-
-    // Write to LOAN_MASTER KSDS
-    rc = WriteLoanMaster(input, quote);
-    if (rc == 0) {
-        MessageBox(NULL, "Loan created successfully.", "Success", MB_OK | MB_ICONINFORMATION);
-        ShowMainMenu();
-    }
+void CLoanRules::LoadLenderTargetForms() {
+    // Valid form IDs from lender_target table (R-L-008)
+    m_lenderTargetForms.push_back(_T("LT-F100"));
+    m_lenderTargetForms.push_back(_T("LT-F200"));
+    m_lenderTargetForms.push_back(_T("LT-F300"));
+    m_lenderTargetForms.push_back(_T("LT-F400"));
 }
 
-// ─── Search Loan Screen ───────────────────────────────────────────────────────
-void CLoanApp::search_loan_screen() {
-    CSearchDlg dlg(m_pMainWnd);
-    if (dlg.DoModal() != IDOK) return;
+// R-L-001 / R-L-002 — search input validation
+BOOL CLoanRules::ValidateLoanForSearch(
+    const CString& strLoanNum,
+    const CString& strBorrowerName,
+    CString& strErrorMessage) {
+    CString num(strLoanNum); num.Trim();
+    CString name(strBorrowerName); name.Trim();
 
-    CString loanId = dlg.GetLoanId();
-    LOAN_RECORD record;
-    int rc = ReadLoanMaster(loanId, &record);
-    if (rc == 4) {
-        MessageBox(NULL, "RC=04 — Record not found.", "Not Found", MB_OK | MB_ICONWARNING);
-        return;
+    // R-L-001: at least one criterion required
+    if (num.IsEmpty() && name.IsEmpty()) {
+        strErrorMessage = _T("At least one search criterion required.");
+        return FALSE;
     }
-    CDetailDlg detail(m_pMainWnd, &record);
-    detail.DoModal();
+    if (!num.IsEmpty()) {
+        // R-L-002: exactly 10 numeric digits
+        if (num.GetLength() != 10) {
+            strErrorMessage = _T("Loan number must be exactly 10 digits.");
+            return FALSE;
+        }
+        for (int i = 0; i < num.GetLength(); i++) {
+            if (!_istdigit(num[i])) {
+                strErrorMessage = _T("Loan number must contain digits only.");
+                return FALSE;
+            }
+        }
+    }
+    return TRUE;
 }
 
-// ─── Update Loan Screen ───────────────────────────────────────────────────────
-// BR-008: 4 immutable fields enforced here
-void CLoanApp::update_loan_screen() {
-    CUpdateDlg dlg(m_pMainWnd);
-    if (dlg.DoModal() != IDOK) return;
-
-    LOAN_UPDATE upd = dlg.GetUpdate();
-    // Enforce BR-008: reject attempt to change locked fields
-    if (upd.loan_id_changed || upd.borrower_changed ||
-        upd.amount_changed  || upd.rate_changed) {
-        MessageBox(NULL, "BR-008: These fields are immutable after origination.",
-                   "Locked Field", MB_OK | MB_ICONERROR);
-        return;
+// R-L-003 — carrier state eligibility
+BOOL CLoanRules::EnforceCarrierCoverage(
+    const CString& strPropertyState,
+    CString& strErrorMessage) const {
+    CString state(strPropertyState); state.Trim();
+    if (state.IsEmpty()) {
+        strErrorMessage = _T("Property state is required for RataBase rating.");
+        return FALSE;
     }
-    int rc = UpdateLoanMaster(upd);
-    if (rc == 0)
-        MessageBox(NULL, "Record updated. Audit written.", "OK", MB_OK | MB_ICONINFORMATION);
+    if (!IsStateInApprovedCarrierList(state)) {
+        strErrorMessage.Format(
+            _T("State '%s' is not in the approved carrier list. ")
+            _T("Contact underwriting for manual quote options."),
+            state.GetString());
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// R-L-006 / R-L-007 / R-L-008 — 14E EDI eligibility
+BOOL CLoanRules::EnforceEdiEligibility(
+    const CLoan& loan,
+    const CString& strFormId,
+    CString& strErrorMessage) const {
+    // R-L-006: EDI_FLAG must be 'Y'
+    if (loan.m_strEdiFlag.CompareNoCase(_T("Y")) != 0) {
+        strErrorMessage = _T("EDI_FLAG is not set to Y — notification skipped.");
+        return FALSE;
+    }
+    // R-L-007: INSTANT_ISSUE cycle suppresses 14E
+    if (loan.m_strCycleType.CompareNoCase(_T("INSTANT_ISSUE")) == 0) {
+        strErrorMessage = _T("14E blocked: Instant Issue cycle.");
+        return FALSE;
+    }
+    // R-L-008: form ID must be in lender_target
+    if (!IsFormIdInLenderTarget(strFormId)) {
+        strErrorMessage.Format(
+            _T("Form ID '%s' not registered in lender_target."),
+            strFormId.GetString());
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// R-L-005 — quote required flag
+BOOL CLoanRules::RequiresQuote(const CLoan& loan) const {
+    return loan.m_strQuoteReqd.CompareNoCase(_T("Y")) == 0;
+}
+
+// R-L-009 to R-L-013 — add loan validation
+BOOL CLoanRules::ValidateLoanForAdd(
+    const CLoan& loan, CString& strErrorMessage) {
+    CString num(loan.m_strLoanNum); num.Trim();
+    CString name(loan.m_strBorrowerName); name.Trim();
+    // R-AL-001
+    if (num.IsEmpty() || name.IsEmpty()) {
+        strErrorMessage = _T("Loan number and borrower name are required.");
+        return FALSE;
+    }
+    // R-AL-002
+    if (num.GetLength() != 10) {
+        strErrorMessage = _T("Loan number must be exactly 10 digits."); return FALSE;
+    }
+    // R-AL-003
+    if (loan.m_nPropertyValue <= 0) {
+        strErrorMessage = _T("Property value must be greater than zero."); return FALSE;
+    }
+    // R-AL-004
+    CString addr(loan.m_strPropertyAddress); addr.Trim();
+    if (addr.IsEmpty()) {
+        strErrorMessage = _T("Property address is required."); return FALSE;
+    }
+    // R-AL-005
+    if (loan.m_strLoanStatus.CompareNoCase(_T("ACTIVE")) != 0) {
+        strErrorMessage = _T("New loans must have initial status ACTIVE."); return FALSE;
+    }
+    // R-AL-006
+    if (loan.m_nUnpaidPrincipalBalance <= 0) {
+        strErrorMessage = _T("Unpaid principal balance must be > 0."); return FALSE;
+    }
+    // R-AL-007
+    if (!IsValidPropertyType(loan.m_strPropertyType)) {
+        strErrorMessage = _T("Property type must be RESIDENTIAL or COMMERCIAL."); return FALSE;
+    }
+    return TRUE;
+}
+
+// R-L-014 (R-ML-001..004) — modify loan validation
+BOOL CLoanRules::ValidateLoanForModify(
+    const CLoan& orig,
+    const CLoan& mod,
+    CString& strErrorMessage) const {
+    // R-ML-001: loan number immutable
+    if (orig.m_strLoanNum.CompareNoCase(mod.m_strLoanNum) != 0) {
+        strErrorMessage = _T("Loan number cannot be changed after creation."); return FALSE;
+    }
+    // R-ML-002: valid status transition only
+    if (orig.m_strLoanStatus.CompareNoCase(mod.m_strLoanStatus) != 0) {
+        if (!IsLoanStatusTransitionValid(
+                orig.m_strLoanStatus, mod.m_strLoanStatus)) {
+            strErrorMessage.Format(
+                _T("Invalid transition: '%s' to '%s'. ")
+                _T("Allowed: ACTIVE->DELINQUENT, DELINQUENT->CLOSED."),
+                orig.m_strLoanStatus.GetString(),
+                mod.m_strLoanStatus.GetString());
+            return FALSE;
+        }
+    }
+    // R-ML-003: UPB cannot increase
+    if (mod.m_nUnpaidPrincipalBalance > orig.m_nUnpaidPrincipalBalance) {
+        strErrorMessage = _T("UPB cannot increase. Contact origination."); return FALSE;
+    }
+    // R-ML-004: address cannot be cleared
+    CString newAddr(mod.m_strPropertyAddress); newAddr.Trim();
+    CString oldAddr(orig.m_strPropertyAddress); oldAddr.Trim();
+    if (oldAddr.CompareNoCase(newAddr) != 0 && newAddr.IsEmpty()) {
+        strErrorMessage = _T("Property address cannot be cleared."); return FALSE;
+    }
+    return TRUE;
 }`;
 
-const COBOL_SOURCE = `      * qlotcalc.cbl — HP Tandem COBOL QLOTCALC Server (~550 lines)
-      * Handles loan quote calculations via Pathway IPC
-
+const COBOL_SOURCE = `      *-----------------------------------------------------------------
+      * TKA900 — LOAN_SEARCH Server Program
+      *
+      * Invoked by TAL Gateway when TME mnemonic LOAN_SEARCH received
+      * from VC++ client via fgatetcp. LSS001T routes LOAN_SEARCH->TKA900.
+      *
+      * Input:  WS-LOAN-NUM (10 chars) / WS-BORROWER-NAME (40 chars)
+      * Output: LSS_LOAN_T fields + QUOTE_REQD/CYCLE_TYPE from
+      *         LSS_CYCLE_STEP_T joined on CLIENT_ID.
+      *-----------------------------------------------------------------
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. QLOTCALC.
+       PROGRAM-ID. TKA900.
        ENVIRONMENT DIVISION.
-       CONFIGURATION SECTION.
-
-      * ─── Working Storage ────────────────────────────────────────────
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-LOAN-INPUT.
-          05 WS-LOAN-AMOUNT    PIC 9(9)V99 COMP-3.
-          05 WS-TERM-MONTHS    PIC 9(3)    COMP.
-          05 WS-CREDIT-SCORE   PIC 9(3).
-          05 WS-LOAN-TYPE      PIC X(40).
-       01 WS-QUOTE-RESULT.
-          05 WS-RATE-TIER      PIC X(2).
-          05 WS-INTEREST-RATE  PIC 9(2)V99 COMP-3.
-          05 WS-MONTHLY-PMT    PIC 9(9)V99 COMP-3.
-          05 WS-INS-PREMIUM    PIC 9(8)V99 COMP-3.
-          05 WS-TOTAL-COST     PIC 9(11)V99 COMP-3.
-          05 WS-RETURN-CODE    PIC 9(2).
-          05 WS-ERROR-MESSAGE  PIC X(80).
-       01 WS-CALC-WORK.
-          05 WS-MONTHLY-RATE   PIC 9(2)V9(8) COMP-3.
-          05 WS-FACTOR         PIC 9(4)V9(8) COMP-3.
-          05 WS-POWER          PIC 9(4)V9(8) COMP-3.
-          05 WS-BASE-PREMIUM   PIC 9(8)V99 COMP-3.
-          05 WS-TIER-MULT      PIC 9V99 COMP-3.
 
-      * ─── Main Procedure ──────────────────────────────────────────────
+       01  WS-REQUEST-BLOCK.
+           05  WS-LOAN-NUM         PIC X(10).
+           05  WS-BORROWER-NAME    PIC X(40).
+
+       01  WS-RESPONSE-BLOCK.
+           05  WS-RESP-LOAN-NUM        PIC X(10).
+           05  WS-RESP-CLIENT-ID       PIC X(8).
+           05  WS-RESP-BORROWER-NAME   PIC X(40).
+           05  WS-RESP-PROPERTY-STATE  PIC X(2).
+           05  WS-RESP-COVERAGE-TYPE   PIC X(10).
+           05  WS-RESP-PROPERTY-VALUE  PIC 9(10).
+           05  WS-RESP-FCI-CODE        PIC X(6).
+           05  WS-RESP-EDI-FLAG        PIC X(1).
+           05  WS-RESP-QUOTE-REQD      PIC X(1).
+           05  WS-RESP-CYCLE-TYPE      PIC X(20).
+
+       01  WS-STATUS-CODE          PIC X(4)  VALUE '0000'.
+       01  WS-STATUS-MESSAGE       PIC X(80) VALUE SPACES.
+       01  WS-SQLCODE              PIC S9(9) COMP.
+
        PROCEDURE DIVISION.
-       §1000-MAIN.
-           PERFORM §2000-VALIDATE-INPUT
-           IF WS-RETURN-CODE NOT = 0
-               PERFORM §9000-WRITE-AUDIT-LOG
-               STOP RUN
+
+       0000-MAIN.
+           PERFORM 1000-RECEIVE-REQUEST
+           PERFORM 2000-VALIDATE-INPUT
+           IF WS-STATUS-CODE = '0000'
+               PERFORM 3000-QUERY-LOAN
            END-IF
-           PERFORM §3000-DETERMINE-CREDIT-TIER
-           PERFORM §4000-FETCH-BASE-RATE
-           PERFORM §5000-FETCH-BASE-PREMIUM
-           PERFORM §6000-CALC-MONTHLY-PAYMENT
-           PERFORM §7000-CALC-INSURANCE-PREMIUM
-           PERFORM §8000-CALCULATE-TOTALS
-           PERFORM §9000-WRITE-AUDIT-LOG
+           IF WS-STATUS-CODE = '0000'
+               PERFORM 4000-QUERY-CYCLE-STEP
+           END-IF
+           PERFORM 9000-SEND-RESPONSE
            STOP RUN.
 
-      * ─── §2000 Validate Input ─────────────────────────────────────────
-       §2000-VALIDATE-INPUT.
-           IF WS-LOAN-AMOUNT < 1 OR WS-LOAN-AMOUNT > 5000000
-               MOVE 11 TO WS-RETURN-CODE
-               MOVE "Amount must be $1-$5,000,000" TO WS-ERROR-MESSAGE
-               PERFORM §9000-WRITE-AUDIT-LOG
+      *--- R-L-001: at least one criterion required ---
+       2000-VALIDATE-INPUT.
+           IF WS-LOAN-NUM = SPACES AND WS-BORROWER-NAME = SPACES
+               MOVE '9001' TO WS-STATUS-CODE
+               MOVE 'At least one search criterion required'
+                   TO WS-STATUS-MESSAGE
+           END-IF.
+
+      *--- R-L-002: CHAR(10) equality match ---
+       3000-QUERY-LOAN.
+           EXEC SQL
+               SELECT LOAN_NUM, CLIENT_ID, BORROWER_NAME,
+                      PROPERTY_STATE, COVERAGE_TYPE,
+                      PROPERTY_VALUE, FCI_CODE, EDI_FLAG
+               INTO   :WS-RESP-LOAN-NUM, :WS-RESP-CLIENT-ID,
+                      :WS-RESP-BORROWER-NAME, :WS-RESP-PROPERTY-STATE,
+                      :WS-RESP-COVERAGE-TYPE, :WS-RESP-PROPERTY-VALUE,
+                      :WS-RESP-FCI-CODE, :WS-RESP-EDI-FLAG
+               FROM   LSS_LOAN_T
+               WHERE  (LOAN_NUM = :WS-LOAN-NUM
+                          OR :WS-LOAN-NUM = SPACES)
+               AND    (BORROWER_NAME LIKE :WS-BORROWER-NAME
+                          OR :WS-BORROWER-NAME = SPACES)
+               FETCH FIRST 1 ROWS ONLY
+           END-EXEC
+           MOVE SQLCODE TO WS-SQLCODE
+           IF WS-SQLCODE = 100
+               MOVE '9002' TO WS-STATUS-CODE
+               MOVE 'No matching loan record found' TO WS-STATUS-MESSAGE
+           END-IF.
+
+      *--- R-L-005 / R-L-007: QUOTE_REQD + CYCLE_TYPE ---
+       4000-QUERY-CYCLE-STEP.
+           EXEC SQL
+               SELECT QUOTE_REQD, CYCLE_TYPE
+               INTO   :WS-RESP-QUOTE-REQD, :WS-RESP-CYCLE-TYPE
+               FROM   LSS_CYCLE_STEP_T
+               WHERE  CLIENT_ID = :WS-RESP-CLIENT-ID
+               FETCH FIRST 1 ROWS ONLY
+           END-EXEC.
+
+       9000-SEND-RESPONSE.
+           CONTINUE.`;
+
+const TKA901 = `      *-----------------------------------------------------------------
+      * TKA901 — ADD_LOAN Server Program
+      * Validates R-AL-001..007 and INSERTs into LSS_LOAN_T.
+      *-----------------------------------------------------------------
+       PROCEDURE DIVISION.
+       0000-MAIN.
+           PERFORM 1000-RECEIVE-REQUEST
+           PERFORM 2000-VALIDATE-ADD
+           IF WS-STATUS-CODE = '0000'
+               PERFORM 3000-INSERT-LOAN
+           END-IF
+           PERFORM 9000-SEND-RESPONSE
+           STOP RUN.
+
+       2000-VALIDATE-ADD.
+           IF WS-ADD-LOAN-NUM = SPACES
+               MOVE '9101' TO WS-STATUS-CODE       *R-AL-001
+               MOVE 'Loan number required' TO WS-MSG
                STOP RUN
            END-IF
-           IF WS-TERM-MONTHS < 12 OR WS-TERM-MONTHS > 360
-               MOVE 12 TO WS-RETURN-CODE
-               MOVE "Term must be 12-360 months" TO WS-ERROR-MESSAGE
-               PERFORM §9000-WRITE-AUDIT-LOG
+           IF WS-ADD-BORROWER-NAME = SPACES
+               MOVE '9102' TO WS-STATUS-CODE       *R-AL-001
                STOP RUN
            END-IF
-           IF WS-CREDIT-SCORE < 300 OR WS-CREDIT-SCORE > 850
-               MOVE 13 TO WS-RETURN-CODE
-               MOVE "Credit score must be 300-850" TO WS-ERROR-MESSAGE
-               PERFORM §9000-WRITE-AUDIT-LOG
+           IF WS-ADD-PROPERTY-VALUE = ZERO
+               MOVE '9103' TO WS-STATUS-CODE       *R-AL-003
                STOP RUN
            END-IF
-           MOVE 0 TO WS-RETURN-CODE.
+           IF WS-ADD-PROPERTY-ADDR = SPACES
+               MOVE '9104' TO WS-STATUS-CODE       *R-AL-004
+               STOP RUN
+           END-IF
+           IF WS-ADD-LOAN-STATUS NOT = 'ACTIVE'
+               MOVE '9105' TO WS-STATUS-CODE       *R-AL-005
+               STOP RUN
+           END-IF
+           IF WS-ADD-UPB = ZERO
+               MOVE '9106' TO WS-STATUS-CODE       *R-AL-006
+               STOP RUN
+           END-IF
+           IF WS-ADD-PROPERTY-TYPE NOT = 'RESIDENTIAL'
+           AND WS-ADD-PROPERTY-TYPE NOT = 'COMMERCIAL'
+               MOVE '9107' TO WS-STATUS-CODE       *R-AL-007
+               STOP RUN
+           END-IF.
 
-      * ─── §3000 Credit Tier Classification (BR-001) ───────────────────
-       §3000-DETERMINE-CREDIT-TIER.
-           EVALUATE TRUE
-               WHEN WS-CREDIT-SCORE >= 750
-                   MOVE "PR" TO WS-RATE-TIER
-               WHEN WS-CREDIT-SCORE >= 680
-                   MOVE "ST" TO WS-RATE-TIER
-               WHEN WS-CREDIT-SCORE >= 620
-                   MOVE "SP" TO WS-RATE-TIER
-               WHEN OTHER
-                   MOVE "DS" TO WS-RATE-TIER
-           END-EVALUATE.
+       3000-INSERT-LOAN.
+           EXEC SQL
+               INSERT INTO LSS_LOAN_T (
+                   LOAN_NUM, CLIENT_ID, BORROWER_NAME,
+                   PROPERTY_STATE, COVERAGE_TYPE,
+                   PROPERTY_VALUE, FCI_CODE, EDI_FLAG,
+                   LOAN_STATUS, UPB, PROPERTY_ADDRESS,
+                   PROPERTY_TYPE)
+               VALUES (
+                   :WS-ADD-LOAN-NUM, :WS-ADD-CLIENT-ID,
+                   :WS-ADD-BORROWER-NAME, :WS-ADD-STATE,
+                   :WS-ADD-COVERAGE-TYPE, :WS-ADD-PROPERTY-VALUE,
+                   :WS-ADD-FCI-CODE, :WS-ADD-EDI-FLAG,
+                   'ACTIVE', :WS-ADD-UPB, :WS-ADD-PROPERTY-ADDR,
+                   :WS-ADD-PROPERTY-TYPE)
+           END-EXEC.`;
 
-      * ─── §6000 Monthly Payment Calculation (BR-006) ─────────────────
-       §6000-CALC-MONTHLY-PAYMENT.
-           DIVIDE WS-INTEREST-RATE BY 1200
-               GIVING WS-MONTHLY-RATE ROUNDED
-           MOVE 1 TO WS-POWER
-           PERFORM WS-TERM-MONTHS TIMES
-               MULTIPLY WS-POWER BY (1 + WS-MONTHLY-RATE)
-                   GIVING WS-POWER ROUNDED
-           END-PERFORM
-           COMPUTE WS-MONTHLY-PMT ROUNDED =
-               WS-LOAN-AMOUNT * WS-MONTHLY-RATE * WS-POWER
-               / (WS-POWER - 1).
-      * NOTE: BR-006 — decimal loop required, NO Math.Pow() equivalent.
-
-      * ─── §9000 Audit Log (BR-009) ────────────────────────────────────
-       §9000-WRITE-AUDIT-LOG.
-           MOVE FUNCTION CURRENT-DATE TO WS-AUDIT-TIMESTAMP
-           WRITE AUDIT-RECORD FROM WS-AUDIT-REC.
-      * Every QLOTCALC invocation writes exactly one AUDIT_LOG record.`;
-
-const FILES = [
-  { id: 'cpp', label: 'lnmain.cpp', tag: 'tag-warn', lang: 'C++ Win32/MFC', lines: '~900', src: CPP_SOURCE },
-  { id: 'cobol', label: 'qlotcalc.cbl', tag: 'tag-success', lang: 'HP Tandem COBOL', lines: '~550', src: COBOL_SOURCE },
+const SOURCES = [
+  { id: 'loanrules', label: 'LoanRules.cpp', type: 'C++',   src: CPP_SOURCE },
+  { id: 'tka900',    label: 'TKA900.cbl',    type: 'COBOL', src: COBOL_SOURCE },
+  { id: 'tka901',    label: 'TKA901.cbl',    type: 'COBOL', src: TKA901 },
 ];
 
+function colorize(line, type) {
+  if (type === 'C++') {
+    if (/^\s*\/\//.test(line)) return 'var(--muted)';
+    if (/\b(BOOL|void|int|return|if|else|for|const|TRUE|FALSE|class|static)\b/.test(line)) return '#ff79c6';
+    if (/_T\(|CString|CLoan|LPCTSTR/.test(line)) return '#8be9fd';
+    if (/strErrorMessage|strLoanNum|strBorrower|strState|strFormId/.test(line)) return '#f1fa8c';
+  }
+  if (type === 'COBOL') {
+    if (/^\s+\*/.test(line)) return 'var(--muted)';
+    if (/^\s+(PERFORM|IF|MOVE|STOP|END-IF|AND|OR)\b/.test(line)) return '#ff79c6';
+    if (/EXEC SQL|END-EXEC/.test(line)) return '#50fa7b';
+    if (/WS-STATUS-CODE|WS-SQLCODE/.test(line)) return '#f1fa8c';
+    if (/LSS_LOAN_T|LSS_CYCLE_STEP_T/.test(line)) return '#8be9fd';
+    if (/^\s+\d{4}-/.test(line)) return '#bd93f9';
+  }
+  return 'var(--text)';
+}
+
 export default function CodeViewer() {
-  const [activeFile, setActiveFile] = useState('cpp');
+  const [active, setActive] = useState('loanrules');
   const [search, setSearch] = useState('');
-
-  const file = FILES.find(f => f.id === activeFile);
-  const lines = file.src.split('\n');
-
-  const filtered = search
-    ? lines.map((l, i) => ({ line: l, num: i + 1, match: l.toLowerCase().includes(search.toLowerCase()) }))
-    : lines.map((l, i) => ({ line: l, num: i + 1, match: false }));
-
-  const hasSearch = search.length > 0;
-  const matchCount = filtered.filter(l => l.match).length;
+  const src = SOURCES.find(s => s.id === active);
+  const lines = src.src.split('\n');
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {FILES.map(f => (
-            <button
-              key={f.id}
-              onClick={() => setActiveFile(f.id)}
-              className={`pill ${activeFile === f.id ? 'pill-blue' : ''}`}
-              style={{ fontSize: 11, background: activeFile === f.id ? '' : 'var(--surface2)', border: '1px solid var(--border)' }}
-            >
-              <span className={`tag ${f.tag}`} style={{ fontSize: 9, marginRight: 5 }}>{f.lang}</span>
-              {f.label} <span style={{ color: 'var(--muted)', marginLeft: 4 }}>({f.lines} lines)</span>
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search source..."
-          style={{
-            background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)',
-            borderRadius: 5, padding: '4px 10px', fontSize: 11, width: 200,
-          }}
-        />
-        {hasSearch && (
-          <span style={{ fontSize: 10, color: 'var(--muted)' }}>{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
-        )}
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center' }}>
+        {SOURCES.map(s => (
+          <button key={s.id} onClick={() => setActive(s.id)} className={`pill ${active === s.id ? 'pill-blue' : ''}`}
+            style={{ fontSize: 11, background: active === s.id ? '' : 'var(--surface2)', border: '1px solid var(--border)' }}>
+            {s.label}
+            <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 4px', borderRadius: 2, background: s.type === 'C++' ? 'var(--orange)22' : 'var(--green)22', color: s.type === 'C++' ? 'var(--orange)' : 'var(--green)' }}>{s.type}</span>
+          </button>
+        ))}
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', padding: '3px 8px', fontSize: 11, width: 160 }} />
+        {search && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{lines.filter(l => l.toLowerCase().includes(search.toLowerCase())).length} matches</span>}
       </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', background: '#0d1117', borderRadius: 6, border: '1px solid var(--border)', padding: 0 }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'monospace', fontSize: 11 }}>
-          <tbody>
-            {filtered.map(({ line, num, match }) => (
-              <tr
-                key={num}
-                style={{ background: match && hasSearch ? '#1f3a1f' : 'transparent' }}
-              >
-                <td style={{
-                  width: 48, textAlign: 'right', padding: '1px 10px 1px 0',
-                  color: '#484f58', userSelect: 'none', borderRight: '1px solid #21262d',
-                  verticalAlign: 'top', lineHeight: '20px',
-                }}>{num}</td>
-                <td style={{ padding: '1px 12px', color: '#e6edf3', whiteSpace: 'pre', lineHeight: '20px' }}>
-                  {hasSearch && match
-                    ? highlightMatch(line, search)
-                    : colorize(line, activeFile)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="card" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
+        <pre style={{ margin: 0, fontSize: 10, lineHeight: 1.6 }}>
+          {lines.map((line, i) => {
+            const hi = search && line.toLowerCase().includes(search.toLowerCase());
+            return (
+              <div key={i} style={{ display: 'flex', background: hi ? '#e3b34122' : 'transparent' }}>
+                <span style={{ color: 'var(--muted)', minWidth: 36, paddingRight: 8, userSelect: 'none', textAlign: 'right', fontSize: 9 }}>{i + 1}</span>
+                <span style={{ color: colorize(line, src.type), whiteSpace: 'pre' }}>{line}</span>
+              </div>
+            );
+          })}
+        </pre>
       </div>
     </div>
   );
-}
-
-function highlightMatch(line, search) {
-  const idx = line.toLowerCase().indexOf(search.toLowerCase());
-  if (idx === -1) return line;
-  return (
-    <>
-      {line.slice(0, idx)}
-      <mark style={{ background: '#e3b34155', color: '#e3b341' }}>{line.slice(idx, idx + search.length)}</mark>
-      {line.slice(idx + search.length)}
-    </>
-  );
-}
-
-function colorize(line, lang) {
-  const trimmed = line.trim();
-  if (lang === 'cobol') {
-    if (trimmed.startsWith('*')) return <span style={{ color: '#8b949e' }}>{line}</span>;
-    if (/^\s*(IDENTIFICATION|DATA|WORKING-STORAGE|PROCEDURE|PROGRAM-ID|ENVIRONMENT|CONFIGURATION)\b/.test(line))
-      return <span style={{ color: '#ff7b72' }}>{line}</span>;
-    if (/^\s*(PERFORM|MOVE|COMPUTE|MULTIPLY|DIVIDE|EVALUATE|WHEN|END-EVALUATE|END-IF|IF|STOP RUN|WRITE)\b/.test(line))
-      return <span style={{ color: '#79c0ff' }}>{line}</span>;
-    if (/^\s*§\d+/.test(trimmed))
-      return <span style={{ color: '#e3b341' }}>{line}</span>;
-    if (/PIC\s+/.test(line))
-      return <span style={{ color: '#a5d6ff' }}>{line}</span>;
-  } else {
-    if (trimmed.startsWith('//'))
-      return <span style={{ color: '#8b949e' }}>{line}</span>;
-    if (/\b(void|int|if|else|return|switch|case|break|#include|#define)\b/.test(line))
-      return <span style={{ color: '#ff7b72' }}>{line}</span>;
-    if (/\bPATHWAY_WRITEREAD\b/.test(line))
-      return <span style={{ color: '#d2a8ff' }}>{line}</span>;
-    if (/\b(MessageBox|DoModal|GetInput)\b/.test(line))
-      return <span style={{ color: '#79c0ff' }}>{line}</span>;
-  }
-  return <span>{line}</span>;
 }

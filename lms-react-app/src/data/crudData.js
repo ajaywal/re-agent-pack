@@ -1,8 +1,40 @@
+// CRUD operations per Tandem program per LSS table
+// Source: LSS_SCHEMA.sql, TKA900/901/902/920.cbl, TrackAllClientManagerLegacy.cpp
 export const CRUD_ROWS = [
-  { table: 'LOAN_MASTER', file: '$DATA.LOANDB', prog: 'lnmain.cpp / db_connector', ops: ['R', 'W', 'U'], key: 'LOAN_ID (PK, 12-char)', alt: 'POLICY_ID (alternate key)', access: 'Random + Sequential', freq: 'High — every operation', notes: 'Main loan store. Create writes; Search reads by ID/policy; Name search is sequential scan. 15 fields per record.' },
-  { table: 'LOAN_MASTER (name scan)', file: '$DATA.LOANDB', prog: 'db_connector:execute_loan_search', ops: ['R'], key: 'Sequential full scan', alt: 'BORROWER_NAME', access: 'Sequential scan', freq: 'Medium — name searches', notes: 'Full KSDS scan for borrower name. O(n) — expensive. Migration: Azure SQL LIKE query with index.' },
-  { table: 'RATE_TABLE', file: '$DATA.RATEDB', prog: 'qlotcalc.cbl:§4000', ops: ['R'], key: 'LOAN_TYPE(30)+TIER(2)=32char', alt: 'None', access: 'Random keyed', freq: 'Every QLOTCALC call', notes: '20 records (5 types × 4 tiers). Returns BASE_RATE, SPREAD, FLOOR, CEILING. Migration: SQL composite PK (loan_type, credit_tier, effective_date).' },
-  { table: 'STATE_SURCHARGE', file: '$DATA.RATEDB', prog: 'qlotcalc.cbl:§5000', ops: ['R'], key: 'STATE_CODE (2-char)', alt: 'None', access: 'Random keyed', freq: 'Every QLOTCALC call', notes: 'Up to 50 records (one per US state). RATE_ADJUSTMENT and PREMIUM_SURCHARGE. Migration: SQL with effective_date versioning.' },
-  { table: 'AUDIT_LOG', file: '$LOG.QLOTAUDT', prog: 'qlotcalc.cbl:§9000', ops: ['W'], key: 'Sequential append (no key)', alt: 'N/A', access: 'Sequential WRITE-only', freq: 'Every QLOTCALC call (success+fail)', notes: 'BR-009: append-only, no READ/UPDATE/DELETE in legacy. Migration: Azure Table Storage PartitionKey=YYYYMMDD, RowKey=timestamp+session.' },
-  { table: 'LOAN_SEQ', file: '$DATA.LOANDB', prog: 'db_connector:generate_loan_id', ops: ['R', 'U'], key: 'SEQ_NAME', alt: 'N/A', access: 'Random READ+UPDATE (atomic)', freq: 'Every loan CREATE', notes: 'Pathway lock ensures atomic increment. Format LN-YYYY-NNN. Migration: Azure SQL CREATE SEQUENCE or IDENTITY column.' },
+  {
+    table: 'LSS_LOAN_T', file: 'HP NonStop SQL/MP', prog: 'TKA900 (LOAN_SEARCH)',
+    ops: ['R'], key: 'LOAN_NUM CHAR(10) PK', alt: 'BORROWER_NAME (LIKE search)',
+    access: 'SQL equality + LIKE', freq: 'High — every search operation',
+    notes: 'FETCH FIRST 1 ROWS ONLY. R-L-001/002 validated client-side before dispatch. Trailing-space semantics on CHAR(10) key.',
+  },
+  {
+    table: 'LSS_LOAN_T', file: 'HP NonStop SQL/MP', prog: 'TKA901 (ADD_LOAN)',
+    ops: ['C'], key: 'LOAN_NUM CHAR(10) PK (must be unique)', alt: 'CLIENT_ID FK',
+    access: 'SQL INSERT', freq: 'Medium — new loan creation',
+    notes: 'R-AL-001 to R-AL-007 validated by both CLoanRules (C++) and TKA901 2000-VALIDATE-ADD. LOAN_STATUS defaults to ACTIVE.',
+  },
+  {
+    table: 'LSS_LOAN_T', file: 'HP NonStop SQL/MP', prog: 'TKA902 (MODIFY_LOAN)',
+    ops: ['R', 'U'], key: 'LOAN_NUM CHAR(10) PK', alt: 'None',
+    access: 'SQL SELECT then UPDATE', freq: 'Medium — loan modifications',
+    notes: '2000-FETCH-CURRENT reads existing record for R-ML comparison. 3000-VALIDATE-MODIFY enforces R-L-014 (R-ML-001 to R-ML-004). ROWS-UPDATED check after UPDATE.',
+  },
+  {
+    table: 'LSS_LOAN_T', file: 'HP NonStop SQL/MP', prog: 'TKA920 (14E_NOTIFY)',
+    ops: ['R'], key: 'LOAN_NUM CHAR(10) PK', alt: 'None',
+    access: 'SQL SELECT (read-only)', freq: 'Medium — 14E processing',
+    notes: 'TKA920 reads EDI_FLAG and coverage details for 14E record construction. No write to LSS_LOAN_T.',
+  },
+  {
+    table: 'LSS_CYCLE_STEP_T', file: 'HP NonStop SQL/MP', prog: 'TKA900 (LOAN_SEARCH)',
+    ops: ['R'], key: 'CLIENT_ID + CYCLE_TYPE (composite PK)', alt: 'None',
+    access: 'SQL SELECT joined on CLIENT_ID', freq: 'High — every search (joined)',
+    notes: '4000-QUERY-CYCLE-STEP: returns QUOTE_REQD and CYCLE_TYPE. Drives R-L-005 and R-L-007 at client layer.',
+  },
+  {
+    table: 'LSS001T', file: 'HP NonStop SQL/MP', prog: 'CTMELibAdapter (C++ startup)',
+    ops: ['R'], key: 'MNEMONIC CHAR(20) PK', alt: 'None',
+    access: 'SQL SELECT at startup — cached in memory', freq: 'Once at startup',
+    notes: '7 routing entries: LOAN_SEARCH→TKA900, ADD_LOAN→TKA901, MODIFY_LOAN→TKA902, 14E_NOTIFY→TKA920, KY_ISO_QUERY→AIP930, QUOTE_REQUEST→TKARB000, LOAN_UPDATE→TKA910. Cache used for all TME dispatches.',
+  },
 ];

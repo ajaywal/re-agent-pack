@@ -4,7 +4,7 @@ import { BRS } from '../data/businessRules';
 const IMP_COLOR = { Critical: 'var(--red)', High: 'var(--orange)', Medium: 'var(--blue)', Low: 'var(--green)' };
 
 export default function BusinessRules() {
-  const [open, setOpen] = useState(new Set(['BR-001']));
+  const [open, setOpen] = useState(new Set(['R-L-001']));
   const [filter, setFilter] = useState('All');
 
   const imps = ['All', 'Critical', 'High', 'Medium', 'Low'];

@@ -1,40 +1,51 @@
 import { TCS } from '../data/testCases';
 import { BRS } from '../data/businessRules';
 
-const PASS_RATES = { 'TC-001': 100, 'TC-002': 100, 'TC-003': 100, 'TC-004': 100, 'TC-005': 100, 'TC-006': 0, 'TC-007': 100, 'TC-008': 100, 'TC-009': 100, 'TC-010': 100 };
-const COVERAGE_BY_CAT = { Create: 100, Validation: 100, Search: 0, Update: 100, Precision: 100 };
+const PASS_RATES = {
+  'TC-001': 100, 'TC-002': 100, 'TC-003': 100, 'TC-004': 100,
+  'TC-005': 100, 'TC-006': 100, 'TC-007': 100, 'TC-008': 100,
+  'TC-009': 0,   'TC-010': 100, 'TC-011': 100, 'TC-012': 100,
+  'TC-013': 100, 'TC-014': 100, 'TC-015': 100, 'TC-016': 100,
+};
 
 const BR_COVERAGE = {
-  'BR-001': ['TC-001', 'TC-002', 'TC-005'],
-  'BR-002': ['TC-001', 'TC-002'],
-  'BR-003': ['TC-003', 'TC-004', 'TC-005'],
-  'BR-004': ['TC-001', 'TC-002'],
-  'BR-005': ['TC-001'],
-  'BR-006': ['TC-001', 'TC-010'],
-  'BR-007': ['TC-001', 'TC-009'],
-  'BR-008': ['TC-007', 'TC-008'],
-  'BR-009': ['TC-003', 'TC-009'],
+  'R-L-001': ['TC-001', 'TC-002'],
+  'R-L-002': ['TC-001', 'TC-003'],
+  'R-L-003': ['TC-004'],
+  'R-L-004': ['TC-005'],
+  'R-L-005': ['TC-006'],
+  'R-L-006': ['TC-007'],
+  'R-L-007': ['TC-008'],
+  'R-L-008': ['TC-009'],
+  'R-L-009': ['TC-010', 'TC-011'],
+  'R-L-010': ['TC-010', 'TC-011'],
+  'R-L-011': ['TC-010', 'TC-011'],
+  'R-L-012': ['TC-010', 'TC-011'],
+  'R-L-013': ['TC-010', 'TC-011'],
+  'R-L-014': ['TC-012', 'TC-013', 'TC-014', 'TC-015', 'TC-016'],
 };
 
 const AC_RESULTS = [
-  { id: 'AC-001', req: 'FR-003', status: 'Pass', note: 'CConfirmDialog shows all 5 quote fields. TC-001 verified.' },
-  { id: 'AC-002', req: 'FR-002', status: 'Pass', note: 'TC-001: Payment=$946.39 matches amortization formula.' },
-  { id: 'AC-003', req: 'FR-006', status: 'Pass', note: 'TC-003: Validation failure still produces audit record.' },
-  { id: 'AC-004', req: 'FR-005', status: 'Pass', note: 'TC-008: Immutable field update blocked with error.' },
-  { id: 'AC-005', req: 'NFR-001', status: 'Pass', note: 'TC-010: 1000 scenarios all within ±$0.01 tolerance.' },
-  { id: 'AC-006', req: 'NFR-004', status: 'Blocked', note: 'TC-006: Name search defect affects data integrity assertion.' },
+  { id: 'AC-001', req: 'FR-001', status: 'Pass',    note: 'TC-002: Empty criteria rejected before fgatetcp dispatch. R-L-001 enforced.' },
+  { id: 'AC-002', req: 'FR-001', status: 'Pass',    note: 'TC-003: 9-digit loan number rejected by R-L-002. TC-001: 10-digit search succeeds.' },
+  { id: 'AC-003', req: 'FR-004', status: 'Pass',    note: 'TC-005: KY ISO pre-call to AIP930 verified before TKARB000 QUOTE_REQUEST.' },
+  { id: 'AC-004', req: 'FR-005', status: 'Pass',    note: 'TC-007: EDI_FLAG=N blocks 14E. TC-008: INSTANT_ISSUE suppresses 14E (R-L-007).' },
+  { id: 'AC-005', req: 'FR-005', status: 'Blocked', note: 'TC-009 FAIL: R-L-008 (LT-F999 invalid form) bypasses Angular validation; reaches TKA920. API-layer guard missing.' },
+  { id: 'AC-006', req: 'FR-003', status: 'Pass',    note: 'TC-014: DELINQUENT→ACTIVE blocked. TKA902 STATUS-CODE 9202. TC-015: UPB increase blocked (STATUS-CODE 9203).' },
+  { id: 'AC-007', req: 'FR-003', status: 'Pass',    note: 'TC-013: ACTIVE→DELINQUENT valid. TC-016: address blank blocked by R-ML-004.' },
+  { id: 'AC-008', req: 'FR-006', status: 'Pass',    note: 'TC-001: All 7 LSS001T routes resolve from CTMELibAdapter cache without SQL/MP query at runtime.' },
 ];
 
 export default function TestDashboard() {
   const passed = Object.values(PASS_RATES).filter(r => r === 100).length;
   const failed = Object.values(PASS_RATES).filter(r => r === 0).length;
   const passRate = Math.round(passed / TCS.length * 100);
+  const brCovered = Object.keys(BR_COVERAGE).length;
 
   const cats = [...new Set(TCS.map(t => t.cat))];
 
   return (
     <div>
-      {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: 8, marginBottom: 12 }}>
         {[
           ['Total Tests', TCS.length, 'var(--text)'],
@@ -42,7 +53,7 @@ export default function TestDashboard() {
           ['Failed', failed, 'var(--red)'],
           ['Pass Rate', `${passRate}%`, passRate >= 90 ? 'var(--green)' : 'var(--orange)'],
           ['Business Rules', BRS.length, 'var(--blue)'],
-          ['BR Covered', Object.keys(BR_COVERAGE).length, 'var(--green)'],
+          ['BR Covered', brCovered, brCovered === BRS.length ? 'var(--green)' : 'var(--orange)'],
         ].map(([lbl, val, color]) => (
           <div key={lbl} className="kpi">
             <div className="kpi-lbl">{lbl}</div>
@@ -52,7 +63,6 @@ export default function TestDashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        {/* Coverage by category */}
         <div className="card">
           <div className="card-title">Coverage by Test Category</div>
           {cats.map(cat => {
@@ -75,7 +85,6 @@ export default function TestDashboard() {
           })}
         </div>
 
-        {/* TC pass/fail list */}
         <div className="card">
           <div className="card-title">Test Case Results</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -94,33 +103,32 @@ export default function TestDashboard() {
         </div>
       </div>
 
-      {/* BR coverage matrix */}
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="card-title">Business Rule → Test Case Coverage Matrix</div>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 10, width: '100%' }}>
             <thead>
               <tr>
-                <th style={{ padding: '4px 10px', textAlign: 'left', color: 'var(--muted)', fontWeight: 400, minWidth: 60 }}>Rule</th>
+                <th style={{ padding: '4px 10px', textAlign: 'left', color: 'var(--muted)', fontWeight: 400, minWidth: 70 }}>Rule</th>
                 {TCS.map(tc => (
-                  <th key={tc.id} style={{ padding: '4px 6px', color: 'var(--muted)', fontWeight: 400, textAlign: 'center', minWidth: 52 }}>
-                    <div style={{ color: PASS_RATES[tc.id] === 100 ? 'var(--green)' : 'var(--red)', fontSize: 10 }}>{tc.id}</div>
+                  <th key={tc.id} style={{ padding: '4px 4px', color: PASS_RATES[tc.id] === 100 ? 'var(--green)' : 'var(--red)', fontWeight: 400, textAlign: 'center', minWidth: 46, fontSize: 9 }}>
+                    {tc.id}
                   </th>
                 ))}
-                <th style={{ padding: '4px 6px', color: 'var(--muted)', fontWeight: 400, textAlign: 'center' }}>Tests</th>
+                <th style={{ padding: '4px 6px', color: 'var(--muted)', fontWeight: 400, textAlign: 'center' }}>TCs</th>
               </tr>
             </thead>
             <tbody>
               {BRS.map(br => {
                 const covered = BR_COVERAGE[br.id] || [];
                 return (
-                  <tr key={br.id}>
+                  <tr key={br.id} style={{ borderBottom: '1px solid var(--border)22' }}>
                     <td style={{ padding: '3px 10px', fontFamily: 'monospace', color: 'var(--blue)', fontWeight: 700 }}>{br.id}</td>
                     {TCS.map(tc => {
                       const has = covered.includes(tc.id);
                       const pass = PASS_RATES[tc.id] === 100;
                       return (
-                        <td key={tc.id} style={{ textAlign: 'center', padding: '3px 4px', background: has ? (pass ? '#0d1f0d' : '#1f0000') : 'transparent', border: '1px solid #21262d' }}>
+                        <td key={tc.id} style={{ textAlign: 'center', padding: '3px 2px', background: has ? (pass ? '#0d1f0d' : '#1f0000') : 'transparent', border: '1px solid #21262d' }}>
                           {has && <span style={{ color: pass ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>{pass ? '✓' : '✗'}</span>}
                         </td>
                       );
@@ -134,7 +142,6 @@ export default function TestDashboard() {
         </div>
       </div>
 
-      {/* Acceptance criteria */}
       <div className="card">
         <div className="card-title">Acceptance Criteria Status</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

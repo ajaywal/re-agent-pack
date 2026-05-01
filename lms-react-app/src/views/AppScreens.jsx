@@ -1,341 +1,170 @@
 import { useState } from 'react';
-import { LOANS, LOAN_TYPES } from '../data/loans';
-import { calcQuote, fmt$ } from '../utils/calc';
+import { LOANS } from '../data/loans';
+import { fmt$ } from '../utils/calc';
 
-const SCREENS = [
-  { id: 'menu', label: 'Main Menu' },
-  { id: 'search', label: 'Search Loan' },
-  { id: 'create', label: 'Create Loan' },
-  { id: 'update', label: 'Update Loan' },
-];
+const winBg = { background: 'linear-gradient(180deg,#1e2a3a 0%,#1c2b40 100%)', border: '1px solid #3a5070', borderRadius: 4, padding: 16, fontFamily: '"Segoe UI", Arial, sans-serif' };
+const winTitle = { background: 'linear-gradient(90deg,#2a4a7a,#1a3050)', color: '#c8d8f0', fontSize: 12, fontWeight: 700, padding: '5px 10px', marginBottom: 12, borderBottom: '1px solid #3a5070', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+const fieldRow = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 };
+const lbl = { color: '#b0c4d8', fontSize: 11, width: 130, textAlign: 'right', flexShrink: 0 };
+const inp = { background: '#0d1e2e', border: '1px solid #2a4060', borderRadius: 2, color: '#c8d8f0', padding: '3px 6px', fontSize: 11, flex: 1, fontFamily: 'inherit' };
+const inpRO = { ...inp, color: '#5af', background: '#071525', cursor: 'default' };
+const winBtn = (col = '#2a5a9a') => ({ background: `linear-gradient(180deg,${col}dd,${col}88)`, color: '#e8f0ff', border: '1px solid #5af6', borderRadius: 3, padding: '4px 14px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' });
+const errBox = { fontSize: 10, color: '#f85', background: '#1f0000', border: '1px solid #f854', borderRadius: 3, padding: '4px 8px', marginTop: 6 };
+const okBox  = { fontSize: 10, color: '#5f5', background: '#001f00', border: '1px solid #5f54', borderRadius: 3, padding: '4px 8px', marginTop: 6 };
 
-function WinGroup({ title, children, style }) {
-  return (
-    <div className="win-group" style={style}>
-      <div className="win-group-title">{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function WinField({ label, value, mono }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-      <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>{label}:</span>
-      <span style={{
-        flex: 1, background: '#0d1117', border: '1px solid #444c56',
-        padding: '2px 6px', fontSize: 11, fontFamily: mono ? 'monospace' : 'inherit',
-        color: '#e6edf3', borderRadius: 2, minWidth: 160,
-      }}>{value || ' '}</span>
-    </div>
-  );
-}
-
-function MainMenuScreen({ onSelect }) {
-  return (
-    <div className="win-root">
-      <div className="win-titlebar">
-        <span>Assurant LMS — HP NonStop Win32/MFC Application</span>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {['─', '□', '×'].map(c => <button key={c} className="win-ctrl">{c}</button>)}
-        </div>
-      </div>
-      <div className="win-content">
-        <WinGroup title="Loan Management System — Main Menu">
-          <div style={{ textAlign: 'center', padding: '8px 0 12px', fontSize: 12, color: '#8b949e' }}>
-            Select an operation to continue
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 20px' }}>
-            {[
-              ['F1', 'search', 'Search / Retrieve Loan'],
-              ['F2', 'create', 'Create New Loan'],
-              ['F3', 'update', 'Update Existing Loan'],
-            ].map(([key, screen, label]) => (
-              <button key={key} className="win-btn" onClick={() => onSelect(screen)}
-                style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '6px 12px', fontSize: 12 }}>
-                <span style={{ color: 'var(--yellow, #e3b341)', fontWeight: 700, minWidth: 28 }}>{key}</span>
-                <span>{label}</span>
-              </button>
-            ))}
-            <div style={{ borderTop: '1px solid #30363d', marginTop: 4, paddingTop: 8 }}>
-              <button className="win-btn" style={{ padding: '5px 12px', fontSize: 11, color: '#8b949e' }}>
-                ESC — Exit Application
-              </button>
-            </div>
-          </div>
-        </WinGroup>
-        <div style={{ textAlign: 'center', fontSize: 9, color: '#484f58', marginTop: 8 }}>
-          HP NonStop Tandem | Pathway IPC Connected | lnmain.cpp build 2.14.1
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SearchScreen({ onSelect }) {
-  const [loanId, setLoanId] = useState('');
+function LoanSearchScreen() {
+  const [loanNum, setLoanNum] = useState('');
+  const [name, setName] = useState('');
   const [result, setResult] = useState(null);
-  const [searched, setSearched] = useState(false);
+  const [msg, setMsg] = useState(null);
 
-  function doSearch() {
-    const found = LOANS.find(l => l.id.toLowerCase().includes(loanId.toLowerCase()));
-    setResult(found || null);
-    setSearched(true);
+  function onSearch() {
+    setMsg(null); setResult(null);
+    if (!loanNum.trim() && !name.trim()) { setMsg({ text: 'R-L-001: At least one search criterion required.', err: true }); return; }
+    if (loanNum.trim() && (loanNum.length !== 10 || !/^\d{10}$/.test(loanNum.trim()))) { setMsg({ text: 'R-L-002: Loan number must be exactly 10 numeric digits.', err: true }); return; }
+    const loan = LOANS.find(l => (loanNum.trim() && l.loanNum === loanNum.trim()) || (name.trim() && l.borrowerName.toLowerCase().includes(name.trim().toLowerCase())));
+    if (!loan) { setMsg({ text: 'STATUS-CODE 9002: No matching loan record found in LSS_LOAN_T.', err: true }); return; }
+    setResult(loan);
+    setMsg({ text: 'LOAN_SEARCH → TKA900: STATUS-CODE 0000', err: false });
   }
 
   return (
-    <div className="win-root">
-      <div className="win-titlebar">
-        <span>Search Loan — lnmain.cpp: search_loan_screen()</span>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {['─', '□', '×'].map(c => <button key={c} className="win-ctrl">{c}</button>)}
+    <div style={{ ...winBg, maxWidth: 520 }}>
+      <div style={winTitle}><span>CLoanSearchDlg — Loan Search</span><span style={{ fontSize: 9, color: '#7a9ab8' }}>LoanSearchDlg.cpp</span></div>
+      <div style={fieldRow}><span style={lbl}>Loan Number:</span><input value={loanNum} onChange={e => setLoanNum(e.target.value)} style={inp} placeholder="0000100001" maxLength={10} /></div>
+      <div style={fieldRow}><span style={lbl}>Borrower Name:</span><input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="(partial match)" /></div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+        <button onClick={onSearch} style={winBtn('#1a5a3a')}>Search</button>
+        <button onClick={() => { setLoanNum(''); setName(''); setResult(null); setMsg(null); }} style={winBtn('#2a3a4a')}>Clear</button>
+      </div>
+      {msg && <div style={msg.err ? errBox : okBox}>{msg.text}</div>}
+      {result && (
+        <div style={{ marginTop: 10, background: '#0a1825', border: '1px solid #2a4060', borderRadius: 3, padding: 10 }}>
+          <div style={{ fontSize: 9, color: '#7a9ab8', marginBottom: 6 }}>LSS_LOAN_T — TKA900 4000-QUERY-CYCLE-STEP joined</div>
+          {[['LOAN_NUM', result.loanNum], ['BORROWER_NAME', result.borrowerName], ['PROPERTY_STATE', result.state], ['COVERAGE_TYPE', result.coverageType], ['PROPERTY_VALUE', fmt$(result.propertyValue)], ['UPB', fmt$(result.upb)], ['FCI_CODE', result.fciCode], ['EDI_FLAG', result.ediFlag], ['LOAN_STATUS', result.loanStatus], ['QUOTE_REQD', result.quoteReqd], ['CYCLE_TYPE', result.cycleType]].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: 8, fontSize: 10, marginBottom: 2 }}>
+              <span style={{ color: '#7a9ab8', width: 110, flexShrink: 0 }}>{k}:</span>
+              <span style={{ color: '#c8d8f0', fontFamily: 'monospace' }}>{v}</span>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className="win-content">
-        <WinGroup title="Search Criteria">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-            <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>Loan ID:</span>
-            <input
-              value={loanId}
-              onChange={e => setLoanId(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && doSearch()}
-              placeholder="LN-2024-001"
-              style={{
-                flex: 1, background: '#0d1117', border: '1px solid #58a6ff',
-                color: '#e6edf3', padding: '3px 8px', fontSize: 11, fontFamily: 'monospace',
-                borderRadius: 2, outline: 'none',
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <button className="win-btn win-btn-primary" onClick={doSearch}>F5 — Search</button>
-            <button className="win-btn" onClick={() => { setLoanId(''); setResult(null); setSearched(false); }}>F3 — Clear</button>
-          </div>
-        </WinGroup>
-
-        {searched && (
-          <WinGroup title={result ? 'Search Result — LOAN_MASTER KSDS Read' : 'No Record Found'} style={{ marginTop: 8 }}>
-            {result ? (
-              <>
-                <WinField label="Loan ID" value={result.id} mono />
-                <WinField label="Borrower" value={result.borrower} />
-                <WinField label="Policy #" value={result.policy} mono />
-                <WinField label="Amount" value={fmt$(result.amount)} mono />
-                <WinField label="Status" value={result.status} />
-                <WinField label="Credit Score" value={result.creditScore} mono />
-                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  <button className="win-btn win-btn-primary" onClick={() => onSelect('update')}>F4 — Update</button>
-                  <button className="win-btn">F6 — Print</button>
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: 11, color: 'var(--red)', padding: 6 }}>
-                RC=04 — Record not found in LOAN_MASTER. Verify Loan ID and retry.
-              </div>
-            )}
-          </WinGroup>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-function CreateScreen({ onToast }) {
-  const [form, setForm] = useState({
-    borrower: '', policy: '', type: LOAN_TYPES[0], amount: '', term: '', score: '',
-  });
-  const [quote, setQuote] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
+function AddLoanScreen() {
+  const [f, setF] = useState({ loanNum: '0000300003', borrowerName: 'Williams, James', state: 'FL', coverageType: 'Hazard', propertyValue: '320000', upb: '295000', propertyAddress: '742 Evergreen Terrace', propertyType: 'RESIDENTIAL', loanStatus: 'ACTIVE', fciCode: 'BK-0099' });
+  const [msg, setMsg] = useState(null);
+  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
 
-  function calcAndConfirm() {
-    if (!form.amount || !form.term || !form.score) return;
-    const q = calcQuote(Number(form.amount), Number(form.term), form.type, Number(form.score));
-    setQuote(q);
+  function onAdd() {
+    setMsg(null);
+    if (!f.loanNum.trim() || !f.borrowerName.trim()) { setMsg({ text: 'R-L-009 (R-AL-001): Loan number and borrower name are required.', err: true }); return; }
+    if (f.loanNum.length !== 10 || !/^\d{10}$/.test(f.loanNum)) { setMsg({ text: 'R-L-009 (R-AL-002): Loan number must be exactly 10 numeric digits.', err: true }); return; }
+    if (!f.propertyValue || parseInt(f.propertyValue) <= 0) { setMsg({ text: 'R-L-010 (R-AL-003): Property value must be greater than zero.', err: true }); return; }
+    if (!f.propertyAddress.trim()) { setMsg({ text: 'R-L-011 (R-AL-004): Property address is required.', err: true }); return; }
+    if (f.loanStatus !== 'ACTIVE') { setMsg({ text: 'R-L-012 (R-AL-005): New loans must have initial status ACTIVE.', err: true }); return; }
+    if (!['RESIDENTIAL', 'COMMERCIAL'].includes(f.propertyType)) { setMsg({ text: 'R-L-013 (R-AL-007): Property type must be RESIDENTIAL or COMMERCIAL.', err: true }); return; }
+    setMsg({ text: 'ADD_LOAN → TKA901: STATUS-CODE 0000 — TKA901 3000-INSERT-LOAN complete.', err: false });
   }
 
-  function confirmCreate() {
-    setConfirmed(true);
-    onToast?.('Loan created — LOAN_MASTER KSDS write + audit record (BR-009)');
-  }
-
-  const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const row = (label, key, opts = {}) => (
+    <div style={fieldRow} key={key}>
+      <span style={lbl}>{label}:</span>
+      {opts.sel ? (
+        <select value={f[key]} onChange={e => s(key, e.target.value)} style={inp}>{opts.opts.map(o => <option key={o}>{o}</option>)}</select>
+      ) : (
+        <input value={f[key]} onChange={e => s(key, e.target.value)} style={inp} maxLength={opts.max} />
+      )}
+    </div>
+  );
 
   return (
-    <div className="win-root">
-      <div className="win-titlebar">
-        <span>Create Loan — lnmain.cpp: create_loan_screen()</span>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {['─', '□', '×'].map(c => <button key={c} className="win-ctrl">{c}</button>)}
-        </div>
+    <div style={{ ...winBg, maxWidth: 560 }}>
+      <div style={winTitle}><span>CLoanAddDlg — Add New Loan</span><span style={{ fontSize: 9, color: '#7a9ab8' }}>LoanAddDlg.cpp — R-AL-001..007</span></div>
+      {row('Loan Number', 'loanNum', { max: 10 })}
+      {row('Borrower Name', 'borrowerName')}
+      {row('Property Address', 'propertyAddress')}
+      {row('Property State', 'state', { max: 2 })}
+      {row('Coverage Type', 'coverageType')}
+      {row('Property Value', 'propertyValue')}
+      {row('Unpaid Prin. Bal.', 'upb')}
+      {row('FCI Code', 'fciCode')}
+      {row('Property Type', 'propertyType', { sel: true, opts: ['RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL'] })}
+      {row('Loan Status', 'loanStatus', { sel: true, opts: ['ACTIVE', 'DELINQUENT', 'CLOSED'] })}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+        <button onClick={onAdd} style={winBtn('#1a5a3a')}>Add Loan</button>
+        <button onClick={() => setMsg(null)} style={winBtn('#2a3a4a')}>Cancel</button>
       </div>
-      <div className="win-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div>
-          <WinGroup title="Borrower Information">
-            {[['Borrower Name', 'borrower', 'text'], ['Policy Number', 'policy', 'text']].map(([lbl, key, type]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>{lbl}:</span>
-                <input value={form[key]} onChange={e => f(key, e.target.value)} type={type}
-                  style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 8px', fontSize: 11, borderRadius: 2, outline: 'none' }} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>Loan Type:</span>
-              <select value={form.type} onChange={e => f('type', e.target.value)}
-                style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 6px', fontSize: 11, borderRadius: 2 }}>
-                {LOAN_TYPES.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </div>
-          </WinGroup>
-
-          <WinGroup title="Loan Parameters" style={{ marginTop: 8 }}>
-            {[['Amount ($)', 'amount', 'number'], ['Term (months)', 'term', 'number'], ['Credit Score', 'score', 'number']].map(([lbl, key, type]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>{lbl}:</span>
-                <input value={form[key]} onChange={e => f(key, e.target.value)} type={type}
-                  style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 8px', fontSize: 11, fontFamily: 'monospace', borderRadius: 2, outline: 'none' }} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              <button className="win-btn win-btn-primary" onClick={calcAndConfirm}>F8 — QLOTCALC Quote</button>
-            </div>
-          </WinGroup>
-        </div>
-
-        <div>
-          {quote ? (
-            <WinGroup title="CConfirmDialog — Quote Summary (BR-007)">
-              <WinField label="Credit Tier" value={quote.tier} mono />
-              <WinField label="Interest Rate" value={`${quote.rate}%`} mono />
-              <WinField label="Monthly Payment" value={fmt$(quote.payment)} mono />
-              <WinField label="Ins. Premium" value={fmt$(quote.premium) + '/mo'} mono />
-              <WinField label="Total Cost" value={fmt$(quote.totalCost)} mono />
-              <div style={{ margin: '10px 0 6px', padding: 8, background: '#161b22', border: '1px solid #e3b341', borderRadius: 4, fontSize: 10, color: '#e3b341' }}>
-                ⚠ Explicit confirmation required (BR-007). Review all terms before proceeding.
-              </div>
-              {!confirmed ? (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="win-btn win-btn-primary" onClick={confirmCreate}>F10 — Confirm &amp; Create</button>
-                  <button className="win-btn" onClick={() => setQuote(null)}>ESC — Cancel</button>
-                </div>
-              ) : (
-                <div style={{ padding: 8, background: '#0d1117', border: '1px solid var(--green)', borderRadius: 4, fontSize: 11, color: 'var(--green)' }}>
-                  ✓ Loan created. LOAN_MASTER KSDS write complete. Audit record written.
-                </div>
-              )}
-            </WinGroup>
-          ) : (
-            <WinGroup title="Quote Panel">
-              <div style={{ padding: 20, textAlign: 'center', fontSize: 11, color: '#484f58' }}>
-                Complete loan parameters and press F8 to run QLOTCALC simulation via Pathway IPC.
-              </div>
-            </WinGroup>
-          )}
-        </div>
-      </div>
+      {msg && <div style={msg.err ? errBox : okBox}>{msg.text}</div>}
     </div>
   );
 }
 
-function UpdateScreen() {
-  const [loanId, setLoanId] = useState('');
-  const [loan, setLoan] = useState(null);
-  const [officer, setOfficer] = useState('');
-  const [status, setStatus] = useState('');
-  const [saved, setSaved] = useState(false);
+function ModifyLoanScreen() {
+  const [sel, setSel] = useState(LOANS[0]);
+  const [status, setStatus] = useState(LOANS[0].loanStatus);
+  const [upb, setUpb] = useState(String(LOANS[0].upb));
+  const [addr, setAddr] = useState(LOANS[0].propertyAddress);
+  const [msg, setMsg] = useState(null);
 
-  function load() {
-    const found = LOANS.find(l => l.id === loanId.trim());
-    if (found) {
-      setLoan(found);
-      setOfficer(found.officer);
-      setStatus(found.status);
-      setSaved(false);
-    }
+  function onSelect(l) { setSel(l); setStatus(l.loanStatus); setUpb(String(l.upb)); setAddr(l.propertyAddress); setMsg(null); }
+
+  function onModify() {
+    setMsg(null);
+    const tr = { ACTIVE: ['DELINQUENT'], DELINQUENT: ['CLOSED'], CLOSED: [] };
+    if (status !== sel.loanStatus && !tr[sel.loanStatus].includes(status)) { setMsg({ text: `R-L-014 (R-ML-002): '${sel.loanStatus}' → '${status}' not permitted.`, err: true }); return; }
+    if (parseInt(upb) > sel.upb) { setMsg({ text: `R-L-014 (R-ML-003): UPB cannot increase from ${fmt$(sel.upb)}.`, err: true }); return; }
+    if (!addr.trim()) { setMsg({ text: 'R-L-014 (R-ML-004): Property address cannot be cleared.', err: true }); return; }
+    setMsg({ text: `MODIFY_LOAN → TKA902: STATUS-CODE 0000 — ${sel.borrowerName} updated.`, err: false });
   }
 
   return (
-    <div className="win-root">
-      <div className="win-titlebar">
-        <span>Update Loan — lnmain.cpp: update_loan_screen()</span>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {['─', '□', '×'].map(c => <button key={c} className="win-ctrl">{c}</button>)}
+    <div style={{ ...winBg, maxWidth: 560 }}>
+      <div style={winTitle}><span>CLoanModifyDlg — Modify Loan</span><span style={{ fontSize: 9, color: '#7a9ab8' }}>LoanModifyDlg.cpp — R-ML-001..004</span></div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 9, color: '#7a9ab8', marginBottom: 4 }}>Select loan:</div>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {LOANS.map(l => <button key={l.loanNum} onClick={() => onSelect(l)} style={{ ...winBtn(sel.loanNum === l.loanNum ? '#1a4a7a' : '#1a2a3a'), fontSize: 9, padding: '2px 6px' }}>{l.loanNum}</button>)}
         </div>
       </div>
-      <div className="win-content">
-        <WinGroup title="Load Record">
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 80 }}>Loan ID:</span>
-            <input value={loanId} onChange={e => setLoanId(e.target.value)} onKeyDown={e => e.key === 'Enter' && load()}
-              placeholder="LN-2024-001" style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 8px', fontSize: 11, fontFamily: 'monospace', borderRadius: 2, outline: 'none' }} />
-            <button className="win-btn win-btn-primary" onClick={load}>F5 — Load</button>
-          </div>
-        </WinGroup>
-
-        {loan && (
-          <WinGroup title="Editable Fields (BR-008: 4 fields locked after origination)" style={{ marginTop: 8 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-              {[
-                ['Loan ID', loan.id, true],
-                ['Borrower', loan.borrower, true],
-                ['Amount', fmt$(loan.amount), true],
-                ['Rate', `${loan.rate}%`, true],
-              ].map(([k, v]) => (
-                <div key={k} style={{ opacity: 0.55 }}>
-                  <WinField label={`🔒 ${k}`} value={v} mono />
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 9, color: 'var(--orange)', marginBottom: 10 }}>
-              ↑ BR-008: Loan ID, Borrower, Amount, Rate are immutable after origination
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>Loan Officer:</span>
-              <input value={officer} onChange={e => setOfficer(e.target.value)}
-                style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 8px', fontSize: 11, borderRadius: 2, outline: 'none' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, color: '#c9d1d9', minWidth: 120 }}>Status:</span>
-              <select value={status} onChange={e => setStatus(e.target.value)}
-                style={{ flex: 1, background: '#0d1117', border: '1px solid #58a6ff', color: '#e6edf3', padding: '3px 6px', fontSize: 11, borderRadius: 2 }}>
-                {['Active', 'Under Review', 'Delinquent', 'Closed'].map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-            {!saved ? (
-              <button className="win-btn win-btn-primary" onClick={() => setSaved(true)}>F10 — Save Changes</button>
-            ) : (
-              <div style={{ padding: 8, background: '#0d1117', border: '1px solid var(--green)', borderRadius: 4, fontSize: 11, color: 'var(--green)' }}>
-                ✓ LOAN_MASTER updated. Audit record written (BR-009).
-              </div>
-            )}
-          </WinGroup>
-        )}
+      <div style={fieldRow}><span style={lbl}>Loan Number:</span><input value={sel.loanNum} readOnly style={inpRO} /></div>
+      <div style={{ fontSize: 9, color: '#7a9ab8', marginLeft: 138, marginTop: -6, marginBottom: 8 }}>R-ML-001: immutable after creation</div>
+      <div style={fieldRow}><span style={lbl}>Borrower Name:</span><input value={sel.borrowerName} readOnly style={inpRO} /></div>
+      <div style={fieldRow}><span style={lbl}>Loan Status:</span>
+        <select value={status} onChange={e => setStatus(e.target.value)} style={inp}>
+          {['ACTIVE', 'DELINQUENT', 'CLOSED'].map(x => <option key={x}>{x}</option>)}
+        </select>
       </div>
+      <div style={{ fontSize: 9, color: '#7a9ab8', marginLeft: 138, marginTop: -6, marginBottom: 8 }}>R-ML-002: ACTIVE→DELINQUENT or DELINQUENT→CLOSED only</div>
+      <div style={fieldRow}><span style={lbl}>UPB:</span><input value={upb} onChange={e => setUpb(e.target.value)} style={inp} /></div>
+      <div style={{ fontSize: 9, color: '#7a9ab8', marginLeft: 138, marginTop: -6, marginBottom: 8 }}>R-ML-003: cannot increase from {fmt$(sel.upb)}</div>
+      <div style={fieldRow}><span style={lbl}>Property Address:</span><input value={addr} onChange={e => setAddr(e.target.value)} style={inp} /></div>
+      <div style={{ fontSize: 9, color: '#7a9ab8', marginLeft: 138, marginTop: -6, marginBottom: 8 }}>R-ML-004: cannot be cleared to blank</div>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+        <button onClick={onModify} style={winBtn('#1a5a3a')}>Modify Loan</button>
+        <button onClick={() => setMsg(null)} style={winBtn('#2a3a4a')}>Cancel</button>
+      </div>
+      {msg && <div style={msg.err ? errBox : okBox}>{msg.text}</div>}
     </div>
   );
 }
 
-export default function AppScreens({ onToast }) {
-  const [active, setActive] = useState('menu');
-
+export default function AppScreens() {
+  const [screen, setScreen] = useState('search');
   return (
     <div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-        {SCREENS.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActive(s.id)}
-            className={`pill ${active === s.id ? 'pill-blue' : ''}`}
-            style={{ fontSize: 11, background: active === s.id ? '' : 'var(--surface2)', border: '1px solid var(--border)' }}
-          >
-            {s.label}
-          </button>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {[['search', 'CLoanSearchDlg'], ['add', 'CLoanAddDlg'], ['modify', 'CLoanModifyDlg']].map(([id, l]) => (
+          <button key={id} onClick={() => setScreen(id)} className={`pill ${screen === id ? 'pill-blue' : ''}`}
+            style={{ fontSize: 11, background: screen === id ? '' : 'var(--surface2)', border: '1px solid var(--border)' }}>{l}</button>
         ))}
+        <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 8, alignSelf: 'center' }}>VC++ Win32/MFC replica — TrackAllClientManagerLegacy.cpp</span>
       </div>
-
-      {active === 'menu' && <MainMenuScreen onSelect={setActive} />}
-      {active === 'search' && <SearchScreen onSelect={setActive} />}
-      {active === 'create' && <CreateScreen onToast={onToast} />}
-      {active === 'update' && <UpdateScreen />}
+      {screen === 'search' && <LoanSearchScreen />}
+      {screen === 'add' && <AddLoanScreen />}
+      {screen === 'modify' && <ModifyLoanScreen />}
     </div>
   );
 }

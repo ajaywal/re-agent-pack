@@ -2,22 +2,27 @@ import { useState, useRef } from 'react';
 import { TCS } from '../data/testCases';
 
 const SIM_RESULTS = {
-  'TC-001': { pass: true,  actual: 'Tier=PRIME, Rate=5.50%, Payment=$946.39, Premium=$126.00, Total=$64,343.40, Status=Active. AUDIT_LOG record written.' },
-  'TC-002': { pass: true,  actual: 'Tier=SUBPRIME (score 625 ≥ 620 < 680). Rate=8.25%, Premium=$63.00/mo. DS tier NOT applied. ✓' },
-  'TC-003': { pass: true,  actual: 'C++ blocked first. QLOTCALC RC=11. LOAN_MASTER NOT written. AUDIT_LOG record written with RC=11. ✓' },
-  'TC-004': { pass: true,  actual: 'QLOTCALC §2000 RC=12: "TERM MUST BE 12-360 MONTHS". §4000 not reached. Audit written. ✓' },
-  'TC-005': { pass: true,  actual: 'Score 749→STANDARD, 750→PRIME ✓. Score 679→SUBPRIME, 680→STANDARD ✓. Score 619→DS, 620→SUBPRIME ✓. All boundaries correct.' },
-  'TC-006': { pass: false, actual: 'FAIL: Borrower name search returned incorrect record for partial name "Kowal". Sequential scan offset by 1. RC=00 but wrong record returned.' },
-  'TC-007': { pass: true,  actual: 'LOAN_MASTER REWRITE: borrower_name, loan_type, loan_amount, loan_id — all 4 fields locked. Status updated to Under Review. Audit written. ✓' },
-  'TC-008': { pass: true,  actual: 'BR-008: Attempt to modify loan_amount blocked with error message. No KSDS write occurred. ✓' },
-  'TC-009': { pass: true,  actual: 'Confirm dialog appeared with all 5 fields (tier, rate, payment, premium, total). Cancel selected → No loan created, no LOAN_MASTER write. ✓' },
-  'TC-010': { pass: true,  actual: 'Decimal vs COMP-3 comparison across 1,000 scenarios: max deviation $0.003. All within ±$0.01 tolerance. Zero cases exceeded threshold. ✓' },
+  'TC-001': { pass: true,  actual: 'TKA900 STATUS-CODE 0000. Loan 0000100001 returned: Anderson/Robert, KY, STANDARD, EDI_FLAG=Y, QUOTE_REQD=Y. All 16 fields populated. ✓' },
+  'TC-002': { pass: true,  actual: 'R-L-001 enforced at CLoanRules::ValidateLoanForSearch() before fgatetcp dispatch. Error: "At least one search criterion required." TKA900 not called. ✓' },
+  'TC-003': { pass: true,  actual: 'R-L-002: "123456789" (9 digits) rejected. ValidateLoanForSearch() returns FALSE. TME LOAN_SEARCH not dispatched. ✓' },
+  'TC-004': { pass: true,  actual: 'R-L-003: WV not in 23 approved carrier states. RataBaseServiceAdapter::CheckCarrierEligibility() returns false. QUOTE_REQUEST not dispatched. ✓' },
+  'TC-005': { pass: true,  actual: 'R-L-004: KY state detected. KY_ISO_QUERY → AIP930 STATUS-CODE 0000. Then QUOTE_REQUEST → TKARB000. Correct sequence verified. ✓' },
+  'TC-006': { pass: true,  actual: 'R-L-005: QUOTE_REQD=Y on LSS_CYCLE_STEP_T. TKARB000 quote dispatched. FL coastal rate 0.62% applied: $150,000 × 0.0062 = $930.00/yr, $77.50/mo. ✓' },
+  'TC-007': { pass: true,  actual: 'R-L-006: EDI_FLAG=N on loan 0000400004 (Thompson/TX). CEDINotificationWriter::CheckEdiFlag() blocks 14E dispatch. TKA920 not called. ✓' },
+  'TC-008': { pass: true,  actual: 'R-L-007: CYCLE_TYPE=INSTANT_ISSUE on loan 0000300003 (Williams/FL). CEDINotificationWriter::CheckCycleType() suppresses 14E. No TKA920 call regardless of EDI_FLAG. ✓' },
+  'TC-009': { pass: false, actual: 'FAIL: R-L-008 form validation defect. LT-F999 (invalid form ID) bypassed .NET validation and reached TKA920. Expected rejection; TKA920 returned STATUS-CODE 9301 (invalid form). Rule must be enforced at API layer before EDI dispatch.' },
+  'TC-010': { pass: true,  actual: 'R-AL-001: Duplicate loan 0000100001 rejected at TKA901 with STATUS-CODE 9101. LSS_LOAN_T INSERT not executed. ✓' },
+  'TC-011': { pass: true,  actual: 'R-AL-002..007 all pass. TKA901 STATUS-CODE 0000. New loan inserted into LSS_LOAN_T with STATUS=ACTIVE default. ✓' },
+  'TC-012': { pass: true,  actual: 'R-ML-001: Attempt to modify LOAN_NUM blocked at ValidateLoanForModify(). Field rendered read-only in CLoanModifyDlg. TKA902 not called. ✓' },
+  'TC-013': { pass: true,  actual: 'R-ML-002: ACTIVE→DELINQUENT transition accepted. TKA902 STATUS-CODE 0000. LSS_LOAN_T.STATUS updated to DELINQUENT. ✓' },
+  'TC-014': { pass: true,  actual: 'R-ML-002: DELINQUENT→ACTIVE blocked. TKA902 STATUS-CODE 9202: "Invalid status transition". LSS_LOAN_T record unchanged. ✓' },
+  'TC-015': { pass: true,  actual: 'R-ML-003: UPB increase from $150,000 to $160,000 blocked. TKA902 STATUS-CODE 9203: "UPB cannot increase". No LOAN_MASTER write. ✓' },
+  'TC-016': { pass: true,  actual: 'R-ML-004: Attempt to blank PROPERTY_ADDR blocked. TKA902 STATUS-CODE 9204: "Address cannot be cleared". Existing address preserved. ✓' },
 };
 
 export default function TestExecution({ onToast }) {
   const [results, setResults] = useState({});
   const [running, setRunning] = useState(false);
-  const [runQueue, setRunQueue] = useState([]);
   const [current, setCurrent] = useState(null);
   const abortRef = useRef(false);
 
@@ -31,24 +36,22 @@ export default function TestExecution({ onToast }) {
     abortRef.current = false;
     setResults({});
     setRunning(true);
-    const queue = TCS.map(t => t.id);
-    setRunQueue(queue);
 
-    for (const id of queue) {
+    for (const tc of TCS) {
       if (abortRef.current) break;
-      setCurrent(id);
-      await delay(600 + Math.random() * 400);
-      setResults(prev => ({ ...prev, [id]: SIM_RESULTS[id] || { pass: true, actual: 'PASS — simulation complete.' } }));
+      setCurrent(tc.id);
+      await delay(500 + Math.random() * 400);
+      setResults(prev => ({ ...prev, [tc.id]: SIM_RESULTS[tc.id] || { pass: true, actual: 'PASS — simulation complete.' } }));
     }
     setRunning(false);
     setCurrent(null);
-    setRunQueue([]);
-    onToast?.(`Test run complete: ${passed + 1}/${total - 1} passed`);
+    const finalPassed = TCS.filter(t => (SIM_RESULTS[t.id] || { pass: true }).pass).length;
+    onToast?.(`Test run complete: ${finalPassed}/${total} passed`);
   }
 
   async function runSingle(id) {
     setCurrent(id);
-    await delay(800);
+    await delay(700);
     setResults(prev => ({ ...prev, [id]: SIM_RESULTS[id] || { pass: true, actual: 'PASS' } }));
     setCurrent(null);
   }
@@ -66,7 +69,6 @@ export default function TestExecution({ onToast }) {
 
   return (
     <div>
-      {/* Control bar */}
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
@@ -83,7 +85,6 @@ export default function TestExecution({ onToast }) {
                 </div>
               ))}
             </div>
-            {/* Progress bar */}
             <div style={{ height: 6, background: 'var(--surface2)', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${progress}%`, background: failed > 0 ? 'var(--red)' : 'var(--green)', borderRadius: 3, transition: 'width .3s' }} />
             </div>
@@ -103,7 +104,6 @@ export default function TestExecution({ onToast }) {
         </div>
       </div>
 
-      {/* Test rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {TCS.map(tc => {
           const result = results[tc.id];
@@ -114,7 +114,8 @@ export default function TestExecution({ onToast }) {
             <div
               key={tc.id}
               style={{
-                padding: '8px 12px', borderRadius: 6, border: `1px solid ${state === 'pass' ? 'var(--green)44' : state === 'fail' ? 'var(--red)44' : 'var(--border)'}`,
+                padding: '8px 12px', borderRadius: 6,
+                border: `1px solid ${state === 'pass' ? 'var(--green)44' : state === 'fail' ? 'var(--red)44' : 'var(--border)'}`,
                 background: state === 'pass' ? '#0d1f0d' : state === 'fail' ? '#1f0000' : state === 'running' ? '#1f3a5f22' : 'var(--surface)',
                 transition: 'all .2s',
               }}

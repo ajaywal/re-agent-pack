@@ -1,67 +1,117 @@
 const DECOMP = {
-  label: 'Assurant LMS System', type: 'system',
+  label: 'TrackAll Loan Servicing System', type: 'system',
   children: [
     {
-      label: 'C++ Win32/MFC Frontend', type: 'cpp', file: 'lnmain.cpp (~900 lines)',
+      label: 'VC++ Win32/MFC Frontend', type: 'cpp', file: 'TrackAllClientManagerLegacy.cpp',
       children: [
-        { label: 'CLoanApp (main)', type: 'func', file: 'WinMain(), ShowMainMenu()' },
-        { label: 'CCreateLoanDlg', type: 'func', file: 'create_loan_screen() — lines 280–380' },
-        { label: 'CSearchDlg', type: 'func', file: 'search_loan_screen()' },
-        { label: 'CUpdateDlg', type: 'func', file: 'update_loan_screen() — BR-008 enforcement' },
-        { label: 'CConfirmDialog', type: 'func', file: 'BR-007: explicit confirmation required' },
-        { label: 'validate_loan_input_cpp()', type: 'func', file: 'validation.cpp — mirrors §2000' },
+        { label: 'CTrackAllClientManagerLegacyApp::InitInstance()', type: 'func', file: 'Wires CLoanRules, CTMELibAdapter, CRataBaseServiceAdapter, CEDINotificationWriter, CLoanSearchDlg' },
         {
-          label: 'db_connector.cpp', type: 'db', file: 'KSDS / Pathway access layer',
+          label: 'CLoanSearchDlg', type: 'func', file: 'LoanSearchDlg.cpp',
           children: [
-            { label: 'execute_loan_search()', type: 'func', file: 'ID/policy/name access modes' },
-            { label: 'generate_loan_id()', type: 'func', file: 'LOAN_SEQ atomic increment' },
-            { label: 'insert_loan_record()', type: 'func', file: 'LOAN_MASTER KSDS write' },
-            { label: 'update_loan_record()', type: 'func', file: 'LOAN_MASTER KSDS rewrite' },
+            { label: 'ValidateLoanForSearch()', type: 'func', file: 'R-L-001: ≥1 criterion; R-L-002: 10-digit loan num' },
+            { label: 'SendMessage(LOAN_SEARCH)', type: 'func', file: 'Dispatches via CTMELibAdapter → TKA900' },
+            { label: 'ProcessLoanResult()', type: 'func', file: 'Populates dialog fields from TKA900 response' },
+          ],
+        },
+        {
+          label: 'CLoanAddDlg', type: 'func', file: 'LoanAddDlg.cpp',
+          children: [
+            { label: 'ValidateLoanForAdd()', type: 'func', file: 'R-AL-001..007: 7 add-loan validations' },
+            { label: 'SendMessage(ADD_LOAN)', type: 'func', file: 'Dispatches via CTMELibAdapter → TKA901' },
+          ],
+        },
+        {
+          label: 'CLoanModifyDlg', type: 'func', file: 'LoanModifyDlg.cpp',
+          children: [
+            { label: 'ValidateLoanForModify()', type: 'func', file: 'R-ML-001..004: immutability, status, UPB, address' },
+            { label: 'SendMessage(MODIFY_LOAN)', type: 'func', file: 'Dispatches via CTMELibAdapter → TKA902' },
+          ],
+        },
+        { label: 'CLoanRules', type: 'func', file: 'LoanRules.cpp — 14 business rules R-L-001..R-L-014. Pure domain logic, no I/O.' },
+      ],
+    },
+    {
+      label: 'TME IPC Layer', type: 'tme', file: 'TMELibAdapter.cpp',
+      children: [
+        { label: 'CTMELibAdapter::LoadRoutingTable()', type: 'tme', file: 'Reads LSS001T at startup — caches 7 mnemonic→program mappings' },
+        { label: 'fgatetcp TCP socket', type: 'tme', file: 'HP NonStop Tandem node. 5s timeout per call.' },
+        { label: 'LOAN_SEARCH → TKA900', type: 'tme', file: 'Search/retrieve; returns loan record + cycle flags' },
+        { label: 'ADD_LOAN → TKA901', type: 'tme', file: 'INSERT LSS_LOAN_T; validates R-AL-001..007' },
+        { label: 'MODIFY_LOAN → TKA902', type: 'tme', file: 'UPDATE LSS_LOAN_T; validates R-ML-001..004' },
+        { label: 'QUOTE_REQUEST → TKARB000', type: 'tme', file: 'Via RataBaseServiceAdapter; triggers R-L-003..005' },
+        { label: '14E_NOTIFY → TKA920', type: 'tme', file: 'Via EDINotificationWriter; triggers R-L-006..008' },
+        { label: 'KY_ISO_QUERY → AIP930', type: 'tme', file: 'Kentucky ISO pre-call; R-L-004 only when state=KY' },
+      ],
+    },
+    {
+      label: 'External Service Adapters', type: 'ext', file: 'Adapter layer',
+      children: [
+        {
+          label: 'RataBaseServiceAdapter.cpp', type: 'ext', file: 'R-L-003/004/005',
+          children: [
+            { label: 'CheckCarrierEligibility()', type: 'func', file: 'R-L-003: 23 approved states list' },
+            { label: 'InvokeKyIsoPreCall()', type: 'func', file: 'R-L-004: KY → AIP930 via KY_ISO_QUERY mnemonic' },
+            { label: 'RequestQuote()', type: 'func', file: 'R-L-005: QUOTE_REQD=Y → TKARB000 dispatch' },
+          ],
+        },
+        {
+          label: 'EDINotificationWriter.cpp', type: 'ext', file: 'R-L-006/007/008',
+          children: [
+            { label: 'CheckEdiFlag()', type: 'func', file: 'R-L-006: EDI_FLAG=Y required for 14E' },
+            { label: 'CheckCycleType()', type: 'func', file: 'R-L-007: INSTANT_ISSUE suppresses 14E' },
+            { label: 'SelectFormat()', type: 'func', file: 'R-L-008: BK- prefix → fixed-width v2.3; SSP- → delimited v4' },
           ],
         },
       ],
     },
     {
-      label: 'HP Pathway IPC Layer', type: 'pathway', file: 'tandem_pathway.h',
+      label: 'Tandem COBOL Backend', type: 'cobol', file: 'HP NonStop Tandem node',
       children: [
-        { label: 'PATHWAY_WRITEREAD(SEARCH)', type: 'pathway', file: '30s timeout — search/retrieve' },
-        { label: 'PATHWAY_WRITEREAD(QUOTE)', type: 'pathway', file: '5s timeout — QLOTCALC invocation' },
-        { label: 'PATHWAY_WRITEREAD(INSERT)', type: 'pathway', file: 'LOAN_MASTER write with lock' },
-        { label: 'PATHWAY_WRITEREAD(UPDATE)', type: 'pathway', file: 'LOAN_MASTER rewrite with lock' },
+        {
+          label: 'TKA900.cbl — LOAN_SEARCH', type: 'cobol', file: '~420 lines',
+          children: [
+            { label: '2000-VALIDATE-INPUT', type: 'cobol', file: 'STATUS-CODE 9001 (no criteria), 9002 (bad loan num)' },
+            { label: '3000-QUERY-LOAN', type: 'cobol', file: 'SELECT from LSS_LOAN_T WHERE LOAN_NUM = :WS-LOAN-NUM' },
+            { label: '4000-FETCH-CYCLE', type: 'cobol', file: 'SELECT from LSS_CYCLE_STEP_T; returns QUOTE_REQD, CYCLE_TYPE' },
+            { label: '5000-BUILD-RESPONSE', type: 'cobol', file: 'Populates 16-field response buffer' },
+          ],
+        },
+        {
+          label: 'TKA901.cbl — ADD_LOAN', type: 'cobol', file: '~280 lines',
+          children: [
+            { label: '2000-VALIDATE-INPUT', type: 'cobol', file: 'STATUS-CODE 9101..9107 for R-AL-001..007' },
+            { label: '3000-INSERT-LOAN', type: 'cobol', file: 'INSERT INTO LSS_LOAN_T — STATUS=ACTIVE default' },
+          ],
+        },
+        {
+          label: 'TKA902.cbl — MODIFY_LOAN', type: 'cobol', file: '~310 lines',
+          children: [
+            { label: '2000-FETCH-CURRENT', type: 'cobol', file: 'SELECT current record for comparison' },
+            { label: '3000-VALIDATE-CHANGES', type: 'cobol', file: 'STATUS-CODE 9201..9204 for R-ML-001..004' },
+            { label: '4000-UPDATE-LOAN', type: 'cobol', file: 'UPDATE LSS_LOAN_T SET ... WHERE LOAN_NUM = :WS-LOAN-NUM' },
+          ],
+        },
+        { label: 'TKA920.cbl — 14E_NOTIFY', type: 'cobol', file: 'Formats and dispatches 14E EDI notification' },
       ],
     },
     {
-      label: 'HP Tandem COBOL Backend', type: 'cobol', file: 'qlotcalc.cbl (~550 lines)',
+      label: 'HP NonStop SQL/MP Tables', type: 'db', file: 'NSK $DATA.LSSDB',
       children: [
-        { label: '§1000-MAIN', type: 'cobol', file: 'Orchestrates §2000-§9000 sequence' },
-        { label: '§2000-VALIDATE-INPUT', type: 'cobol', file: 'RC=11/12/13 on bounds failure' },
-        { label: '§3000-DETERMINE-CREDIT-TIER', type: 'cobol', file: 'BR-001: EVALUATE score → PR/ST/SP/DS' },
-        { label: '§4000-FETCH-BASE-RATE', type: 'cobol', file: 'RATE_TABLE KSDS read (composite key)' },
-        { label: '§5000-APPLY-STATE-ADJUSTMENT', type: 'cobol', file: 'STATE_SURCHARGE KSDS read' },
-        { label: '§6000-CALCULATE-MONTHLY-PAYMENT', type: 'cobol', file: 'BR-006: amortization decimal loop' },
-        { label: '§7000-CALCULATE-INSURANCE-PREMIUM', type: 'cobol', file: 'BR-002: type base × tier multiplier' },
-        { label: '§8000-CALCULATE-TOTALS', type: 'cobol', file: 'COMP-3 total cost accumulation' },
-        { label: '§9000-WRITE-AUDIT-LOG', type: 'cobol', file: 'BR-009: always writes, even on failure' },
+        { label: 'LSS_LOAN_T', type: 'db', file: 'PK: LOAN_NUM CHAR(10). 16 fields. R/C/U by TKA900/901/902/920.' },
+        { label: 'LSS_CYCLE_STEP_T', type: 'db', file: 'PK: CLIENT_ID + CYCLE_TYPE. Provides QUOTE_REQD and CYCLE_TYPE to TKA900.' },
+        { label: 'LSS001T', type: 'db', file: 'TME routing table. 7 mnemonic→program rows. Cached at startup by CTMELibAdapter.' },
       ],
     },
     {
-      label: 'KSDS File System (5 files)', type: 'db', file: 'HP NonStop NSK',
+      label: 'Angular 17 / .NET 8 Migration Target', type: 'dotnet', file: 'Forward engineering target',
       children: [
-        { label: 'LOAN_MASTER', type: 'db', file: '$DATA.LOANDB — 15 fields, R/W/U' },
-        { label: 'RATE_TABLE', type: 'db', file: '$DATA.RATEDB — 20 records (5×4), R only' },
-        { label: 'STATE_SURCHARGE', type: 'db', file: '$DATA.RATEDB — up to 50 states, R only' },
-        { label: 'AUDIT_LOG', type: 'db', file: '$LOG.QLOTAUDT — append only, BR-009' },
-        { label: 'LOAN_SEQ', type: 'db', file: '$DATA.LOANDB — atomic ID generator' },
-      ],
-    },
-    {
-      label: '.NET 8 / Azure Migration Target', type: 'dotnet', file: 'Target architecture',
-      children: [
-        { label: 'ASP.NET 8 API / Blazor', type: 'dotnet', file: 'Replaces Win32/MFC UI' },
-        { label: 'QuoteService (C# decimal)', type: 'dotnet', file: 'Replaces QLOTCALC COBOL' },
-        { label: 'Azure Service Bus / gRPC', type: 'dotnet', file: 'Replaces Pathway IPC' },
-        { label: 'Azure SQL (4 tables)', type: 'dotnet', file: 'Replaces LOAN_MASTER, RATE_TABLE, STATE_SURCHARGE, LOAN_SEQ' },
-        { label: 'Azure Table Storage', type: 'dotnet', file: 'Replaces AUDIT_LOG (append-only)' },
+        { label: 'Angular 17 SPA', type: 'dotnet', file: 'Replaces MFC Win32 dialogs (Search/Add/Modify)' },
+        { label: '.NET 8 Web API + LoanService', type: 'dotnet', file: 'Replaces TMELibAdapter + adapters' },
+        { label: 'Azure Service Bus', type: 'dotnet', file: 'Replaces fgatetcp TCP socket + TME routing' },
+        { label: 'IRataBaseServiceAdapter (HttpClient)', type: 'dotnet', file: 'Replaces direct AIP930/TKARB000 fgatetcp calls' },
+        { label: 'Azure SQL dbo.LoanMaster', type: 'dotnet', file: 'Replaces LSS_LOAN_T SQL/MP' },
+        { label: 'Azure SQL dbo.CycleStep', type: 'dotnet', file: 'Replaces LSS_CYCLE_STEP_T' },
+        { label: 'Azure App Configuration', type: 'dotnet', file: 'Replaces LSS001T routing table' },
       ],
     },
   ],
@@ -70,11 +120,12 @@ const DECOMP = {
 const TYPE_COLORS = {
   system:  { color: 'var(--text)',    bg: '#21262d', stroke: '#484f58' },
   cpp:     { color: 'var(--orange)',  bg: '#3a2a00', stroke: '#e3b341' },
+  tme:     { color: 'var(--purple)',  bg: '#2d1f5e', stroke: '#a371f7' },
+  ext:     { color: 'var(--blue)',    bg: '#1f3a5f', stroke: '#58a6ff' },
   cobol:   { color: 'var(--green)',   bg: '#1a2d1a', stroke: '#3fb950' },
-  pathway: { color: 'var(--purple)',  bg: '#2d1f5e', stroke: '#a371f7' },
-  db:      { color: 'var(--orange)',  bg: '#3a2a00', stroke: '#e3b34188' },
+  db:      { color: 'var(--muted)',   bg: '#21262d', stroke: '#484f5888' },
   func:    { color: 'var(--muted)',   bg: '#161b22', stroke: '#30363d' },
-  dotnet:  { color: 'var(--blue)',    bg: '#1f3a5f', stroke: '#58a6ff' },
+  dotnet:  { color: 'var(--blue)',    bg: '#1f3a5f', stroke: '#58a6ff88' },
 };
 
 function DecompNode({ node, depth = 0 }) {
@@ -113,10 +164,11 @@ export default function Decomposition() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: 8, marginBottom: 12 }}>
         {[
           ['Total Nodes', total, 'var(--text)'],
-          ['C++ Modules', DECOMP.children[0].children.length, 'var(--orange)'],
-          ['COBOL Sections', DECOMP.children[2].children.length, 'var(--green)'],
-          ['KSDS Files', DECOMP.children[3].children.length, 'var(--orange)'],
-          ['IPC Endpoints', DECOMP.children[1].children.length, 'var(--purple)'],
+          ['VC++ Modules', 5, 'var(--orange)'],
+          ['COBOL Programs', 4, 'var(--green)'],
+          ['SQL/MP Tables', 3, 'var(--muted)'],
+          ['TME Routes', 7, 'var(--purple)'],
+          ['Azure Targets', 7, 'var(--blue)'],
         ].map(([lbl, val, color]) => (
           <div key={lbl} className="kpi">
             <div className="kpi-lbl">{lbl}</div>
@@ -126,7 +178,7 @@ export default function Decomposition() {
       </div>
 
       <div className="card" style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 260px)' }}>
-        <div className="card-title">System Decomposition Hierarchy</div>
+        <div className="card-title">System Decomposition Hierarchy — TrackAll Loan Servicing System</div>
         <DecompNode node={DECOMP} depth={0} />
       </div>
     </div>
