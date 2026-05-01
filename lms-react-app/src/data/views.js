@@ -1,5 +1,9 @@
 export const ALL_VIEWS = [
-  { id: 'dashboard',   icon: '📊', title: 'Dashboard',              sub: 'TrackAll LSS — system overview' },
+  { id: 'dashboard',    icon: '📊', title: 'Dashboard',               sub: 'TrackAll LSS — system overview' },
+  { id: 'sourceupload', icon: '⬆', title: 'Source Upload',            sub: 'GitHub repo or ZIP — select analyses to run' },
+  { id: 'playground',  icon: '🤖', title: 'Agent Playground',         sub: 'Drag & drop agent flow builder — multi-model' },
+  { id: 'governance',  icon: '⚖', title: 'Governance (watsonx.gov)', sub: 'KPI tracking, model risk, drift, audit trail' },
+  { id: 'runhistory',  icon: '🕐', title: 'Run History',              sub: 'Historical analysis runs — compare iterations' },
   { id: 'loanmgmt',   icon: '🏦', title: 'Loan Management',         sub: '5 seed loans — LSS_LOAN_T / rule enforcement demo' },
   { id: 'screens',    icon: '🖥',  title: 'C++ Application Screens', sub: 'Win32/MFC dialogs — Search / Add Loan / Modify Loan' },
   { id: 'codeviewer', icon: '📄', title: 'Source Code Viewer',       sub: 'LoanRules.cpp + TKA900.cbl + TKA901/TKA902' },
@@ -18,14 +22,24 @@ export const ALL_VIEWS = [
 ];
 
 export const ROLE_VIEWS = {
-  PM:  ['dashboard','loanmgmt','screens','codeviewer','calltree','process','dependency','impact','crud','dbconn','testcases','decomp','bizrules','reqdoc','testexec','testdash'],
-  BA:  ['dashboard','loanmgmt','screens','calltree','process','decomp','bizrules','reqdoc','testexec','testdash'],
-  DBA: ['dashboard','loanmgmt','screens','crud','dbconn','testdash'],
-  DEV: ['dashboard','loanmgmt','screens','codeviewer','calltree','process','dependency','impact','testcases','decomp','bizrules','testexec','testdash'],
+  PM:  ['dashboard','sourceupload','playground','governance','runhistory','loanmgmt','screens','codeviewer','calltree','process','dependency','impact','crud','dbconn','testcases','decomp','bizrules','reqdoc','testexec','testdash'],
+  BA:  ['dashboard','sourceupload','playground','governance','runhistory','loanmgmt','screens','calltree','process','decomp','bizrules','reqdoc','testexec','testdash'],
+  DBA: ['dashboard','sourceupload','runhistory','loanmgmt','screens','crud','dbconn','testdash'],
+  DEV: ['dashboard','sourceupload','playground','runhistory','loanmgmt','screens','codeviewer','calltree','process','dependency','impact','testcases','decomp','bizrules','testexec','testdash'],
 };
 
 export const NAV_STRUCTURE = [
   { type: 'standalone', id: 'dashboard', icon: '📊', label: 'Dashboard' },
+  { type: 'sep' },
+  {
+    type: 'group', icon: '🤖', label: 'Agentic RE', color: '#a371f7',
+    items: [
+      { id: 'sourceupload', icon: '⬆',  label: 'Source Upload' },
+      { id: 'playground',   icon: '🎮', label: 'Agent Playground' },
+      { id: 'governance',   icon: '⚖',  label: 'Governance' },
+      { id: 'runhistory',   icon: '🕐', label: 'Run History' },
+    ],
+  },
   { type: 'sep' },
   {
     type: 'group', icon: '🔬', label: 'Reverse Engineering', color: '#58a6ff',

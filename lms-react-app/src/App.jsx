@@ -23,24 +23,32 @@ import BusinessRules from './views/BusinessRules';
 import ReqDocument from './views/ReqDocument';
 import TestExecution from './views/TestExecution';
 import TestDashboard from './views/TestDashboard';
+import SourceUpload from './views/SourceUpload';
+import AgentPlayground from './views/AgentPlayground';
+import Governance from './views/Governance';
+import RunHistory from './views/RunHistory';
 
 const VIEW_MAP = {
-  dashboard:  Dashboard,
-  loanmgmt:  LoanManagement,
-  screens:    AppScreens,
-  codeviewer: CodeViewer,
-  calltree:   CallTree,
-  process:    ProcessFlow,
-  dependency: Dependency,
-  impact:     ImpactAnalysis,
-  crud:       CrudReport,
-  dbconn:     DbConnections,
-  testcases:  TestCases,
-  decomp:     Decomposition,
-  bizrules:   BusinessRules,
-  reqdoc:     ReqDocument,
-  testexec:   TestExecution,
-  testdash:   TestDashboard,
+  dashboard:    Dashboard,
+  loanmgmt:    LoanManagement,
+  screens:      AppScreens,
+  codeviewer:   CodeViewer,
+  calltree:     CallTree,
+  process:      ProcessFlow,
+  dependency:   Dependency,
+  impact:       ImpactAnalysis,
+  crud:         CrudReport,
+  dbconn:       DbConnections,
+  testcases:    TestCases,
+  decomp:       Decomposition,
+  bizrules:     BusinessRules,
+  reqdoc:       ReqDocument,
+  testexec:     TestExecution,
+  testdash:     TestDashboard,
+  sourceupload: SourceUpload,
+  playground:   AgentPlayground,
+  governance:   Governance,
+  runhistory:   RunHistory,
 };
 
 export default function App() {
