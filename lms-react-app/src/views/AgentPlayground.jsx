@@ -172,6 +172,131 @@ function ApiKeyModal({ needed, savedKeys, onConfirm, onCancel }) {
   );
 }
 
+// ─── Human Review Modal ───────────────────────────────────────────────────────
+
+const CONTEXT_LABELS = [
+  { key: 'sourceFiles',    label: 'Source Files',     icon: '📁', getContent: v => `${v.totalFiles} files  (${v.totalLoc} LOC)\n\n` + v.files.map(f => `• ${f.path}`).join('\n') },
+  { key: 'staticAnalysis', label: 'Static Analysis',  icon: '🔬', getContent: v => v },
+  { key: 'inventory',      label: 'Inventory',        icon: '📦', getContent: v => v },
+  { key: 'businessRules',  label: 'Business Rules',   icon: '📐', getContent: v => v },
+  { key: 'testCases',      label: 'Test Cases',       icon: '🧪', getContent: v => v },
+  { key: 'dataFlow',       label: 'Data Flow',        icon: '🗄', getContent: v => v },
+  { key: 'documentation',  label: 'Documentation',    icon: '📝', getContent: v => v },
+  { key: 'report',         label: 'Report',           icon: '📊', getContent: v => v },
+];
+
+function HumanReviewModal({ context, onDecide }) {
+  const available = CONTEXT_LABELS.filter(c => context[c.key]);
+  const [activeKey, setActiveKey] = useState(available[0]?.key || null);
+  const [comment, setComment] = useState('');
+  const [reviewer, setReviewer] = useState('');
+
+  function content() {
+    const item = CONTEXT_LABELS.find(c => c.key === activeKey);
+    if (!item || !context[item.key]) return '(no output available)';
+    const raw = item.getContent(context[item.key]);
+    return typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+  }
+
+  const ACTION_BTNS = [
+    { action: 'reject',  label: '✗ Reject',            bg: 'var(--red)' },
+    { action: 'partial', label: '◑ Partially Approve',  bg: 'var(--orange)' },
+    { action: 'approve', label: '✓ Approve',            bg: 'var(--green)' },
+  ];
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#000d', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: '92vw', maxWidth: 960, height: '88vh', background: 'var(--surface)', border: '2px solid var(--red)', borderRadius: 10, display: 'flex', flexDirection: 'column', boxShadow: '0 12px 48px #000b' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderBottom: '1px solid var(--border)', background: '#300a0a66', borderRadius: '8px 8px 0 0', flexShrink: 0 }}>
+          <span style={{ fontSize: 22 }}>👤</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>Human Review Required</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+              Review each agent output below, add comments, then make your decision. Flow is paused.
+            </div>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10, color: 'var(--orange)', background: '#3a1a0044', border: '1px solid var(--orange)44', borderRadius: 4, padding: '3px 8px' }}>
+              ⏸ Flow paused
+            </span>
+          </div>
+        </div>
+
+        {/* Body: tab sidebar + output viewer */}
+        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+
+          {/* Tab sidebar */}
+          <div style={{ width: 168, flexShrink: 0, borderRight: '1px solid var(--border)', padding: '10px 8px', overflowY: 'auto', background: '#0d111766' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 8 }}>Agent Outputs</div>
+            {available.length === 0 && (
+              <div style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'center', marginTop: 20 }}>
+                No outputs yet — add upstream agents before the Human Reviewer
+              </div>
+            )}
+            {available.map(item => (
+              <div key={item.key} onClick={() => setActiveKey(item.key)}
+                style={{
+                  padding: '7px 9px', borderRadius: 5, marginBottom: 3, cursor: 'pointer',
+                  background: activeKey === item.key ? 'var(--surface2)' : 'transparent',
+                  border: `1px solid ${activeKey === item.key ? 'var(--border)' : 'transparent'}`,
+                  display: 'flex', alignItems: 'center', gap: 7,
+                }}>
+                <span style={{ fontSize: 13 }}>{item.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: activeKey === item.key ? 700 : 400, color: activeKey === item.key ? 'var(--text)' : 'var(--muted)' }}>{item.label}</span>
+                {activeKey === item.key && <span style={{ marginLeft: 'auto', fontSize: 8, color: 'var(--blue)' }}>●</span>}
+              </div>
+            ))}
+          </div>
+
+          {/* Output viewer */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {activeKey && (
+              <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)', background: '#0d111744', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13 }}>{CONTEXT_LABELS.find(c => c.key === activeKey)?.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{CONTEXT_LABELS.find(c => c.key === activeKey)?.label}</span>
+                <span style={{ fontSize: 9, color: 'var(--muted)', marginLeft: 4 }}>Read-only — produced by upstream agent</span>
+              </div>
+            )}
+            <div style={{ flex: 1, overflow: 'auto', padding: 16, fontFamily: 'monospace', fontSize: 11, color: '#e6edf3', lineHeight: 1.75, whiteSpace: 'pre-wrap', background: '#0d1117' }}>
+              {activeKey ? content() : <span style={{ color: 'var(--muted)' }}>Select an agent output on the left to review it</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Review form footer */}
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--surface2)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+            <div style={{ width: 180 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Reviewer Name</div>
+              <input value={reviewer} onChange={e => setReviewer(e.target.value)} placeholder="Your name..."
+                style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '6px 8px', color: 'var(--text)', fontSize: 11, boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Review Comments / Conditions for Partial Approval</div>
+              <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2}
+                placeholder="Add review notes, approval conditions, or rejection reasons..."
+                style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '6px 8px', color: 'var(--text)', fontSize: 11, resize: 'none', boxSizing: 'border-box', fontFamily: 'sans-serif' }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+            <span style={{ fontSize: 10, color: 'var(--muted)', marginRight: 'auto' }}>Comment is required for Reject / Partially Approve</span>
+            {ACTION_BTNS.map(btn => (
+              <button key={btn.action}
+                disabled={btn.action !== 'approve' && !comment.trim()}
+                onClick={() => onDecide({ action: btn.action, comment: comment.trim() || 'Approved', reviewer: reviewer.trim() || 'Reviewer' })}
+                style={{ background: btn.bg, color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: btn.action !== 'approve' && !comment.trim() ? 'not-allowed' : 'pointer', opacity: btn.action !== 'approve' && !comment.trim() ? 0.5 : 1 }}>
+                {btn.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Node Result Viewer ───────────────────────────────────────────────────────
 
 function NodeResultDrawer({ node, onClose }) {
@@ -220,6 +345,21 @@ export default function AgentPlayground({ onToast }) {
   const gestureRef = useRef(null);
   const abortRef = useRef(false);
   const logRef = useRef();
+  const humanReviewResolveRef = useRef(null);
+  const [humanReviewRequest, setHumanReviewRequest] = useState(null);
+
+  function waitForHumanReview(context) {
+    return new Promise((resolve, reject) => {
+      humanReviewResolveRef.current = { resolve, reject };
+      setHumanReviewRequest({ context });
+    });
+  }
+
+  function handleHumanDecision(decision) {
+    setHumanReviewRequest(null);
+    humanReviewResolveRef.current?.resolve(decision);
+    humanReviewResolveRef.current = null;
+  }
 
   const nodes = Object.values(flow.nodes);
   const selectedNode = selectedId ? flow.nodes[selectedId] : null;
@@ -357,6 +497,41 @@ export default function AgentPlayground({ onToast }) {
       const model = getModel(node.model);
 
       dispatch({ type: 'SET_STATUS', id: nodeId, status: 'running' });
+
+      // ── Human review gate — pause flow and wait for UI decision ──────────────
+      if (node.type === 'human-review') {
+        addLog(`  ⏸ ${def.label} — flow paused, awaiting human review...`, 'warn');
+        let decision;
+        try {
+          decision = await waitForHumanReview(context);
+        } catch {
+          addLog('  ✕ Review cancelled — flow stopped', 'error');
+          break;
+        }
+        const actionLabel = { approve: 'APPROVED', partial: 'PARTIALLY APPROVED', reject: 'REJECTED' }[decision.action];
+        const result = {
+          agentType: 'human-review',
+          output: `${actionLabel} by ${decision.reviewer}\n\nComments: ${decision.comment}\nTimestamp: ${new Date().toISOString()}`,
+          action: decision.action,
+          comment: decision.comment,
+          reviewer: decision.reviewer,
+          inputTokens: 0,
+          outputTokens: 0,
+        };
+        if (decision.action === 'reject') {
+          nodeResults[nodeId] = { status: 'error', result };
+          dispatch({ type: 'SET_STATUS', id: nodeId, status: 'error', result });
+          addLog(`  ✗ ${def.label}: REJECTED by ${decision.reviewer} — ${decision.comment}`, 'error');
+          abortRef.current = true; // stop remaining agents
+          break;
+        }
+        context = mergeIntoContext(context, result);
+        nodeResults[nodeId] = { status: 'done', result };
+        dispatch({ type: 'SET_STATUS', id: nodeId, status: 'done', result });
+        addLog(`  ✓ ${def.label}: ${actionLabel} by ${decision.reviewer}`, 'success');
+        continue;
+      }
+
       addLog(`  ⟳ ${def.label}${model ? ` [${model.label}]` : ''}`, 'info');
 
       try {
@@ -369,7 +544,6 @@ export default function AgentPlayground({ onToast }) {
         nodeResults[nodeId] = { status: 'error', result: { agentType: node.type, output: `ERROR: ${err.message}`, inputTokens: 0, outputTokens: 0 } };
         dispatch({ type: 'SET_STATUS', id: nodeId, status: 'error', result: nodeResults[nodeId].result });
         addLog(`  ✗ ${def.label}: ${err.message}`, 'error');
-        // Don't abort entire flow on single agent error
       }
     }
 
@@ -408,6 +582,12 @@ export default function AgentPlayground({ onToast }) {
   function stopExecution() {
     abortRef.current = true;
     setExecuting(false);
+    // Cancel any pending human review gate
+    if (humanReviewResolveRef.current) {
+      humanReviewResolveRef.current.reject(new Error('cancelled'));
+      humanReviewResolveRef.current = null;
+      setHumanReviewRequest(null);
+    }
     addLog('✕ Execution cancelled', 'error');
   }
 
@@ -836,6 +1016,12 @@ export default function AgentPlayground({ onToast }) {
         />
       )}
       {resultNode && <NodeResultDrawer node={resultNode} onClose={() => setResultNode(null)} />}
+      {humanReviewRequest && (
+        <HumanReviewModal
+          context={humanReviewRequest.context}
+          onDecide={handleHumanDecision}
+        />
+      )}
     </div>
   );
 }
