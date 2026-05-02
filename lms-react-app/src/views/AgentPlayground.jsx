@@ -7,30 +7,39 @@ const DRAG_THRESHOLD = 6;
 
 const AGENT_TYPES = [
   { type: 'source-loader',   label: 'Source Loader',           icon: '📁', color: 'var(--purple)', category: 'Input',      desc: 'Load code from GitHub or ZIP',
+    inputs: [],                                outputs: ['source'],
     defaultModel: 'claude-haiku-4-5-20251001',
     defaultParams: { repoUrl: 'https://github.com/ajaywal/re-agent-pack', branch: 'main', githubToken: '', fileTypes: '.cpp,.h,.cbl,.js,.ts,.sql,.md' } },
   { type: 'static-analyst',  label: 'Static Code Analyst',     icon: '🔬', color: 'var(--orange)', category: 'Analysis',   desc: 'Call trees, tech debt, dead code',
+    inputs: ['source'],                        outputs: ['analysis'],
     defaultModel: 'ibm-granite-34b-code',
     defaultParams: { temperature: 0.1, maxTokens: 4096, prompt: '' } },
   { type: 'inventory',       label: 'Inventory Scanner',        icon: '📦', color: '#58a6ff',       category: 'Analysis',   desc: 'Files, functions, classes, LOC',
+    inputs: ['source'],                        outputs: ['inventory'],
     defaultModel: 'claude-haiku-4-5-20251001',
     defaultParams: { temperature: 0.1, maxTokens: 2048, prompt: '' } },
   { type: 'rules-extractor', label: 'Business Rules Extractor',icon: '📐', color: 'var(--blue)',    category: 'Analysis',   desc: 'BR from conditionals & comments',
+    inputs: ['source', 'analysis'],            outputs: ['rules'],
     defaultModel: 'claude-sonnet-4-6',
     defaultParams: { temperature: 0.2, maxTokens: 6000, prompt: '' } },
   { type: 'test-generator',  label: 'Test Case Generator',      icon: '🧪', color: 'var(--green)',   category: 'Generation', desc: 'Test cases from rules & code paths',
+    inputs: ['rules', 'source', 'analysis'],   outputs: ['tests'],
     defaultModel: 'claude-sonnet-4-6',
     defaultParams: { temperature: 0.3, maxTokens: 4096, prompt: '' } },
   { type: 'doc-writer',      label: 'Document Writer',          icon: '📝', color: '#8b949e',       category: 'Generation', desc: 'FR/NFR, data model, API specs',
+    inputs: ['rules', 'tests', 'analysis', 'inventory'], outputs: ['docs'],
     defaultModel: 'claude-opus-4-7',
     defaultParams: { temperature: 0.3, maxTokens: 6000, prompt: '' } },
   { type: 'data-analyst',    label: 'Data Flow Analyst',        icon: '🗄', color: 'var(--orange)', category: 'Analysis',   desc: 'CRUD matrix, data flow diagrams',
+    inputs: ['source'],                        outputs: ['data'],
     defaultModel: 'ibm-granite-3-1-8b',
     defaultParams: { temperature: 0.1, maxTokens: 3000, prompt: '' } },
   { type: 'human-review',    label: 'Human Reviewer',           icon: '👤', color: 'var(--red)',     category: 'Control',    desc: 'Approval gate — pauses flow',
+    inputs: ['*'],                             outputs: ['approved'],
     defaultModel: null,
     defaultParams: { approvers: 'PM, BA', autoApprove: true, timeout: '24h' } },
   { type: 'report-compiler', label: 'Report Compiler',          icon: '📊', color: 'var(--green)',   category: 'Output',     desc: 'Aggregate results into report',
+    inputs: ['*'],                             outputs: ['report'],
     defaultModel: 'claude-sonnet-4-6',
     defaultParams: { temperature: 0.3, maxTokens: 4096, prompt: '' } },
 ];
@@ -305,8 +314,19 @@ export default function AgentPlayground({ onToast }) {
     const cx = Math.abs(x2 - x1) * 0.5 + 60;
     return `M${x1},${y1} C${x1 + cx},${y1} ${x2 - cx},${y2} ${x2},${y2}`;
   }
-  const outPos = n => ({ x: n.x + NODE_W, y: n.y + NODE_H / 2 });
-  const inPos  = n => ({ x: n.x,          y: n.y + NODE_H / 2 });
+  // Ports sit at the outside edge of the node, vertically centred
+  const outPos = n => ({ x: n.x + NODE_W + 9, y: n.y + NODE_H / 2 });
+  const inPos  = n => ({ x: n.x - 9,           y: n.y + NODE_H / 2 });
+
+  // Returns true when the pending-edge's output type is compatible with `toType`
+  function isCompatible(toType) {
+    if (!pendingEdge) return false;
+    const fromDef = getAgentDef(flow.nodes[pendingEdge]?.type);
+    const toDef = getAgentDef(toType);
+    if (!fromDef || !toDef) return false;
+    if (toDef.inputs.includes('*')) return true;
+    return fromDef.outputs.some(o => toDef.inputs.includes(o));
+  }
 
   // ── Execution ─────────────────────────────────────────────────────────────
   function startExecution(apiKeys) {
@@ -564,11 +584,21 @@ export default function AgentPlayground({ onToast }) {
               <div style={{ fontSize: 9, color: CATEGORY_COLOR[cat], fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, paddingBottom: 2, borderBottom: `1px solid ${CATEGORY_COLOR[cat]}33` }}>{cat}</div>
               {AGENT_TYPES.filter(a => a.category === cat).map(agent => (
                 <div key={agent.type} draggable onDragStart={e => onSidebarDragStart(e, agent.type)}
-                  style={{ display: 'flex', gap: 6, alignItems: 'flex-start', padding: '5px 7px', borderRadius: 4, marginBottom: 3, cursor: 'grab', background: 'var(--surface2)', border: '1px solid var(--border)', userSelect: 'none' }}>
-                  <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{agent.icon}</span>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: agent.color, lineHeight: 1.2 }}>{agent.label}</div>
-                    <div style={{ fontSize: 8, color: 'var(--muted)', lineHeight: 1.3, marginTop: 1 }}>{agent.desc}</div>
+                  style={{ padding: '5px 7px', borderRadius: 4, marginBottom: 3, cursor: 'grab', background: 'var(--surface2)', border: '1px solid var(--border)', userSelect: 'none' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{agent.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: agent.color, lineHeight: 1.2 }}>{agent.label}</div>
+                      <div style={{ fontSize: 8, color: 'var(--muted)', lineHeight: 1.3, marginTop: 1 }}>{agent.desc}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                    {agent.inputs.length > 0 && agent.inputs.map(t => (
+                      <span key={`in-${t}`} style={{ fontSize: 7, background: '#58a6ff18', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 2, padding: '0 4px' }}>{t}</span>
+                    ))}
+                    {agent.outputs.map(t => (
+                      <span key={`out-${t}`} style={{ fontSize: 7, background: '#a371f718', color: '#a371f7', border: '1px solid #a371f744', borderRadius: 2, padding: '0 4px' }}>{t} ▶</span>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -618,6 +648,11 @@ export default function AgentPlayground({ onToast }) {
                 const model = getModel(node.model);
                 const isSel = selectedId === node.id;
                 const sc = node.status ? STATUS_COLOR[node.status] : null;
+                const compat = pendingEdge && pendingEdge !== node.id && isCompatible(node.type);
+                const incompatPort = pendingEdge && pendingEdge !== node.id && !compat;
+                // Port colours
+                const inPortColor  = compat ? 'var(--green)' : pendingEdge && pendingEdge !== node.id ? '#484f58' : '#58a6ff';
+                const outPortColor = pendingEdge === node.id ? 'var(--orange)' : '#a371f7';
                 return (
                   <div key={node.id}
                     onPointerDown={e => onNodePointerDown(e, node.id)}
@@ -627,16 +662,29 @@ export default function AgentPlayground({ onToast }) {
                     style={{
                       position: 'absolute', left: node.x, top: node.y, width: NODE_W, height: NODE_H,
                       background: 'var(--surface2)', borderRadius: 8,
-                      border: `2px solid ${isSel ? def.color : sc || 'var(--border)'}`,
-                      boxShadow: isSel ? `0 0 0 2px ${def.color}33` : 'none',
+                      border: `2px solid ${isSel ? def.color : sc || (compat ? 'var(--green)' : 'var(--border)')}`,
+                      boxShadow: isSel ? `0 0 0 3px ${def.color}44` : compat ? '0 0 0 3px var(--green)44' : 'none',
                       userSelect: 'none', touchAction: 'none',
-                      display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 16px',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 20px 0 20px',
                       cursor: 'pointer',
                     }}>
-                    {/* Input port */}
-                    <div onClick={e => onInputPortClick(e, node.id)}
-                      style={{ position: 'absolute', left: -7, top: NODE_H / 2 - 7, width: 14, height: 14, borderRadius: '50%', background: pendingEdge && pendingEdge !== node.id ? 'var(--blue)' : 'var(--bg)', border: `2px solid ${pendingEdge && pendingEdge !== node.id ? 'var(--blue)' : 'var(--border)'}`, cursor: 'pointer', zIndex: 3 }} />
 
+                    {/* ── Input port (left) ── */}
+                    <div
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={e => onInputPortClick(e, node.id)}
+                      title={def.inputs.length === 0 ? 'No input (source agent)' : `Accepts: ${def.inputs.join(', ')}`}
+                      style={{
+                        position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                        cursor: def.inputs.length === 0 ? 'not-allowed' : 'crosshair', zIndex: 5,
+                        opacity: def.inputs.length === 0 ? 0.35 : 1,
+                      }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: incompatPort ? '#21262d' : inPortColor + '33', border: `2.5px solid ${inPortColor}`, transition: 'all 0.15s' }} />
+                      <span style={{ fontSize: 7, color: inPortColor, fontWeight: 700, letterSpacing: 0.3 }}>IN</span>
+                    </div>
+
+                    {/* ── Node body ── */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span style={{ fontSize: 18, flexShrink: 0 }}>{def.icon}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -650,21 +698,36 @@ export default function AgentPlayground({ onToast }) {
                           <span style={{ fontSize: 12, color: sc }}>{node.status === 'running' ? '⟳' : node.status === 'done' ? '✓' : '✗'}</span>
                         )}
                         {node.result && (
-                          <span onClick={e => { e.stopPropagation(); setResultNode(node); }}
+                          <span
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={e => { e.stopPropagation(); setResultNode(node); }}
                             title="View output"
                             style={{ fontSize: 9, cursor: 'pointer', color: 'var(--blue)', padding: '1px 4px', background: 'var(--blue)22', borderRadius: 3 }}>👁</span>
                         )}
                       </div>
                     </div>
 
-                    {/* Output port */}
-                    <div onClick={e => onOutputPortClick(e, node.id)}
-                      style={{ position: 'absolute', right: -7, top: NODE_H / 2 - 7, width: 14, height: 14, borderRadius: '50%', background: pendingEdge === node.id ? 'var(--blue)' : 'var(--bg)', border: `2px solid ${pendingEdge === node.id ? 'var(--blue)' : 'var(--border)'}`, cursor: 'pointer', zIndex: 3 }} />
+                    {/* ── Output port (right) ── */}
+                    <div
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={e => onOutputPortClick(e, node.id)}
+                      title={`Outputs: ${def.outputs.join(', ')} — click then click target IN port`}
+                      style={{
+                        position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                        cursor: 'crosshair', zIndex: 5,
+                      }}>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: outPortColor + '33', border: `2.5px solid ${outPortColor}`, transition: 'all 0.15s' }} />
+                      <span style={{ fontSize: 7, color: outPortColor, fontWeight: 700, letterSpacing: 0.3 }}>OUT</span>
+                    </div>
 
-                    {/* Delete button (only when selected) */}
+                    {/* ── Delete button — always visible when selected ── */}
                     {isSel && (
-                      <div onClick={e => { e.stopPropagation(); dispatch({ type: 'DELETE_NODE', id: node.id }); setSelectedId(null); }}
-                        style={{ position: 'absolute', top: -8, right: -8, width: 18, height: 18, borderRadius: '50%', background: 'var(--red)', color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 700, zIndex: 4 }}>×</div>
+                      <div
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); dispatch({ type: 'DELETE_NODE', id: node.id }); setSelectedId(null); }}
+                        title="Delete agent"
+                        style={{ position: 'absolute', top: -9, right: -9, width: 20, height: 20, borderRadius: '50%', background: 'var(--red)', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 700, zIndex: 6, boxShadow: '0 1px 4px #0008' }}>×</div>
                     )}
                   </div>
                 );
@@ -707,6 +770,24 @@ export default function AgentPlayground({ onToast }) {
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: selectedDef.color }}>{selectedDef.label}</div>
                   <div style={{ fontSize: 9, color: 'var(--muted)' }}>{selectedDef.category}</div>
+                </div>
+              </div>
+
+              {/* Input / Output compatibility chips */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 8, color: '#58a6ff', fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Accepts</div>
+                  {selectedDef.inputs.length === 0
+                    ? <span style={{ fontSize: 9, color: 'var(--muted)' }}>—</span>
+                    : selectedDef.inputs.map(t => (
+                        <span key={t} style={{ display: 'inline-block', fontSize: 8, background: '#58a6ff22', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 3, padding: '1px 5px', marginRight: 3, marginBottom: 2 }}>{t}</span>
+                      ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 8, color: '#a371f7', fontWeight: 700, textTransform: 'uppercase', marginBottom: 3 }}>Outputs</div>
+                  {selectedDef.outputs.map(t => (
+                    <span key={t} style={{ display: 'inline-block', fontSize: 8, background: '#a371f722', color: '#a371f7', border: '1px solid #a371f755', borderRadius: 3, padding: '1px 5px', marginRight: 3, marginBottom: 2 }}>{t}</span>
+                  ))}
                 </div>
               </div>
 
