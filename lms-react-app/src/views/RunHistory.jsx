@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const RUNS_KEY = 'lss-runs';
+const AGENT_RUNS_KEY = 'lss-agent-runs';
 
 const ANALYSIS_LABELS = {
   static:    { label: 'Static Analysis',  icon: '🔬', color: 'var(--orange)' },
@@ -59,11 +60,26 @@ const SEED_RUNS = [
 function loadRuns() {
   try {
     const stored = JSON.parse(localStorage.getItem(RUNS_KEY) || '[]');
-    if (stored.length === 0) {
+    const agentRuns = JSON.parse(localStorage.getItem(AGENT_RUNS_KEY) || '[]');
+    // Normalise agent playground runs so they render in the same list
+    const normalised = agentRuns.map(r => ({
+      id: r.id,
+      ts: r.ts,
+      source: r.source || { type: 'playground', url: '—' },
+      language: 'Agent Flow',
+      analyses: r.nodes ? r.nodes.map(n => n.type) : [],
+      results: r.results || {},
+      status: r.status || 'success',
+      duration: r.duration || 0,
+      flowName: r.flowName,
+      _raw: r,
+    }));
+    const combined = [...normalised, ...stored];
+    if (combined.length === 0) {
       localStorage.setItem(RUNS_KEY, JSON.stringify(SEED_RUNS));
       return SEED_RUNS;
     }
-    return stored;
+    return combined.sort((a, b) => new Date(b.ts) - new Date(a.ts));
   } catch { return SEED_RUNS; }
 }
 
