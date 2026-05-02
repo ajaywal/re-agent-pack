@@ -1,5 +1,5 @@
 import { useReducer, useRef, useState, useEffect } from 'react';
-import { MODELS, getModel, requiredApiKeys, runAgentNode, mergeIntoContext, topoSort } from '../utils/agentRunners';
+import { MODELS, getModel, requiredApiKeys, runAgentNode, mergeIntoContext, topoSort, listMcpTools, CUSTOM_AGENTS_KEY, saveGovernanceEntry } from '../utils/agentRunners';
 
 const NODE_W = 178;
 const NODE_H = 76;
@@ -42,18 +42,29 @@ const AGENT_TYPES = [
     inputs: ['*'],                             outputs: ['report'],
     defaultModel: 'claude-sonnet-4-6',
     defaultParams: { temperature: 0.3, maxTokens: 4096, prompt: '' } },
+  { type: 'mcp-client',      label: 'MCP Tool Client',           icon: '🔌', color: '#f0883e',        category: 'External',   desc: 'Call any HTTP MCP-compatible server',
+    inputs: ['*'],                             outputs: ['mcp-result'],
+    defaultModel: null,
+    defaultParams: { serverUrl: '', authToken: '', toolName: '', toolArgs: '{}', retries: 2, discoveredTools: [], toolSchema: null } },
 ];
 
 const CATEGORY_COLOR = { Input: 'var(--purple)', Analysis: 'var(--blue)', Generation: 'var(--green)', Control: 'var(--red)', Output: 'var(--orange)' };
 
-function getAgentDef(type) { return AGENT_TYPES.find(a => a.type === type) || AGENT_TYPES[0]; }
+function getAgentDef(type) {
+  const builtin = AGENT_TYPES.find(a => a.type === type);
+  if (builtin) return builtin;
+  try { return JSON.parse(localStorage.getItem(CUSTOM_AGENTS_KEY) || '[]').find(a => a.type === type) || AGENT_TYPES[0]; }
+  catch { return AGENT_TYPES[0]; }
+}
 function uid() { return `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
 const FLOWS_KEY   = 'lss-agent-flows';
 const RUNS_KEY    = 'lss-agent-runs';
 
-function loadCatalog() { try { return JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]'); } catch { return []; } }
-function loadRuns()    { try { return JSON.parse(localStorage.getItem(RUNS_KEY) || '[]'); } catch { return []; } }
+function loadCatalog()      { try { return JSON.parse(localStorage.getItem(FLOWS_KEY) || '[]'); } catch { return []; } }
+function loadRuns()         { try { return JSON.parse(localStorage.getItem(RUNS_KEY) || '[]'); } catch { return []; } }
+function loadCustomAgents() { try { return JSON.parse(localStorage.getItem(CUSTOM_AGENTS_KEY) || '[]'); } catch { return []; } }
+function saveCustomAgents(list) { localStorage.setItem(CUSTOM_AGENTS_KEY, JSON.stringify(list)); }
 function saveFlow(flow) {
   const catalog = loadCatalog();
   const idx = catalog.findIndex(f => f.id === flow.id);
@@ -165,6 +176,323 @@ function ApiKeyModal({ needed, savedKeys, onConfirm, onCancel }) {
           <button onClick={onCancel} style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
           <button onClick={() => onConfirm(keys)} style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             ▶ Run with these keys
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Param field with model-capability-aware disabled state ──────────────────
+
+function ParamField({ label, disabled, reason, children }) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+        <span style={{ fontSize: 10, color: disabled ? '#484f58' : 'var(--muted)' }}>{label}</span>
+        {disabled && (
+          <span style={{ fontSize: 8, background: '#21262d', color: '#6e7681', border: '1px solid #30363d', borderRadius: 3, padding: '0 4px' }}>
+            n/a — {reason}
+          </span>
+        )}
+      </div>
+      <div style={{ opacity: disabled ? 0.3 : 1, pointerEvents: disabled ? 'none' : 'auto' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── MCP Config Panel ─────────────────────────────────────────────────────────
+
+const MCP_CONTEXT_SLOTS = ['{{sourceCode}}','{{businessRules}}','{{testCases}}','{{staticAnalysis}}','{{inventory}}','{{dataFlow}}','{{documentation}}'];
+
+function McpConfigPanel({ node, selectedId, dispatch }) {
+  const [discovering, setDiscovering] = useState(false);
+  const [discoverError, setDiscoverError] = useState(null);
+  const p = node.params;
+  function set(k, v) { dispatch({ type: 'SET_PARAM', id: selectedId, key: k, value: v }); }
+
+  async function discover() {
+    if (!p.serverUrl?.trim()) { setDiscoverError('Enter server URL first'); return; }
+    setDiscovering(true); setDiscoverError(null);
+    try {
+      const tools = await listMcpTools(p.serverUrl.trim(), p.authToken || '');
+      set('discoveredTools', tools);
+      if (tools.length > 0 && !p.toolName) set('toolName', tools[0].name);
+    } catch (e) { setDiscoverError(e.message); }
+    finally { setDiscovering(false); }
+  }
+
+  const selectedTool = (p.discoveredTools || []).find(t => t.name === p.toolName);
+
+  return (
+    <>
+      <ParamField label="MCP Server URL (HTTP/SSE)">
+        <input value={p.serverUrl || ''} onChange={e => set('serverUrl', e.target.value)}
+          placeholder="http://localhost:3000/mcp"
+          style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, fontFamily: 'monospace', boxSizing: 'border-box' }} />
+      </ParamField>
+
+      <ParamField label="Auth Token (Bearer)">
+        <input type="password" value={p.authToken || ''} onChange={e => set('authToken', e.target.value)}
+          placeholder="Leave blank if unauthenticated"
+          style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, fontFamily: 'monospace', boxSizing: 'border-box' }} />
+      </ParamField>
+
+      <div style={{ marginBottom: 8 }}>
+        <button onClick={discover} disabled={discovering}
+          style={{ width: '100%', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 5, padding: '6px 10px', fontSize: 10, fontWeight: 700, cursor: discovering ? 'wait' : 'pointer' }}>
+          {discovering ? '⟳ Discovering…' : '🔍 Discover Tools'}
+        </button>
+        {discoverError && <div style={{ fontSize: 9, color: 'var(--red)', marginTop: 3 }}>{discoverError}</div>}
+        {!discoverError && (p.discoveredTools?.length > 0) && <div style={{ fontSize: 9, color: 'var(--green)', marginTop: 3 }}>✓ {p.discoveredTools.length} tools found</div>}
+      </div>
+
+      <ParamField label={p.discoveredTools?.length > 0 ? 'Select Tool' : 'Tool Name (manual)'}>
+        {p.discoveredTools?.length > 0 ? (
+          <select value={p.toolName || ''} onChange={e => {
+            const tool = p.discoveredTools.find(t => t.name === e.target.value);
+            set('toolName', e.target.value);
+            set('toolSchema', tool?.inputSchema || null);
+          }} style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10 }}>
+            <option value="">— choose —</option>
+            {p.discoveredTools.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+          </select>
+        ) : (
+          <input value={p.toolName || ''} onChange={e => set('toolName', e.target.value)}
+            placeholder="e.g. read_file"
+            style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, fontFamily: 'monospace', boxSizing: 'border-box' }} />
+        )}
+        {selectedTool?.description && <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 3, fontStyle: 'italic' }}>{selectedTool.description}</div>}
+      </ParamField>
+
+      {p.toolSchema && (
+        <div style={{ marginBottom: 8, padding: '5px 7px', background: '#0d1117', borderRadius: 4, border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 9, color: 'var(--orange)', fontWeight: 700, marginBottom: 3 }}>INPUT SCHEMA</div>
+          <pre style={{ fontSize: 8, color: '#8b949e', margin: 0, maxHeight: 72, overflow: 'auto', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{JSON.stringify(p.toolSchema, null, 2)}</pre>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Tool Arguments (JSON)</div>
+        <textarea value={p.toolArgs || '{}'} rows={4} onChange={e => set('toolArgs', e.target.value)}
+          style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }} />
+      </div>
+      <div style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 4 }}>Context placeholders (click to insert):</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 8 }}>
+        {MCP_CONTEXT_SLOTS.map(s => (
+          <button key={s} onClick={() => {
+            try {
+              const parsed = JSON.parse(p.toolArgs || '{}');
+              parsed[s.slice(2,-2)] = s;
+              set('toolArgs', JSON.stringify(parsed, null, 2));
+            } catch { /* ignore */ }
+          }} style={{ fontSize: 8, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 3, padding: '2px 5px', cursor: 'pointer', color: 'var(--orange)', fontFamily: 'monospace' }}>
+            {s}
+          </button>
+        ))}
+      </div>
+
+      <ParamField label={`Retries on error: ${p.retries ?? 2}`}>
+        <input type="range" min={0} max={4} step={1} value={p.retries ?? 2}
+          onChange={e => set('retries', parseInt(e.target.value))} style={{ width: '100%' }} />
+      </ParamField>
+
+      <div style={{ fontSize: 9, color: 'var(--muted)', padding: '5px 7px', background: '#0d1117', borderRadius: 4, lineHeight: 1.5, marginTop: 4 }}>
+        HTTP/SSE transport only. For stdio servers use{' '}
+        <code style={{ color: 'var(--orange)' }}>npx @modelcontextprotocol/proxy</code>.
+        CORS must be enabled.
+      </div>
+    </>
+  );
+}
+
+// ─── Custom Agent Builder Modal ───────────────────────────────────────────────
+
+function CustomAgentModal({ onSave, onCancel }) {
+  const [isMcp, setIsMcp] = useState(false);
+  const [form, setForm] = useState({
+    label: '', icon: '🤖', color: '#a371f7', category: 'Analysis',
+    desc: '', inputs: 'source', outputs: 'custom-output',
+    defaultModel: 'claude-sonnet-4-6', systemPrompt: '',
+    serverUrl: '', authToken: '', toolName: '', toolArgs: '{}',
+  });
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  function save() {
+    const id = `custom-${Date.now().toString(36)}`;
+    const agent = {
+      id, type: id, isCustom: true, isMcp,
+      label: form.label.trim(), icon: form.icon || '🤖',
+      color: form.color || '#a371f7', category: form.category,
+      desc: form.desc.trim(),
+      inputs: form.inputs.split(',').map(s => s.trim()).filter(Boolean),
+      outputs: form.outputs.split(',').map(s => s.trim()).filter(Boolean),
+      defaultModel: isMcp ? null : form.defaultModel,
+      systemPrompt: form.systemPrompt,
+      defaultParams: isMcp
+        ? { serverUrl: form.serverUrl, authToken: form.authToken, toolName: form.toolName, toolArgs: form.toolArgs, retries: 2, discoveredTools: [], toolSchema: null }
+        : { temperature: 0.2, maxTokens: 4096, prompt: '' },
+      createdAt: new Date().toISOString(),
+    };
+    onSave(agent);
+  }
+
+  const canSave = form.label.trim() && (isMcp ? form.serverUrl.trim() : form.systemPrompt.trim());
+  const INPUT_STYLE = { width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 11, boxSizing: 'border-box' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: '#000c', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 540, maxHeight: '90vh', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', boxShadow: '0 8px 40px #000a', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 20 }}>🔧</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>New Custom Agent</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>Add a reusable agent to the library — saved in your browser</div>
+          </div>
+        </div>
+
+        {/* LLM / MCP toggle */}
+        <div style={{ display: 'flex', margin: '12px 18px 0', background: 'var(--surface2)', borderRadius: 6, padding: 2 }}>
+          {[[false,'⬡ LLM Agent'],[true,'🔌 MCP Tool Agent']].map(([v, lbl]) => (
+            <button key={String(v)} onClick={() => setIsMcp(v)}
+              style={{ flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 5, cursor: 'pointer',
+                background: isMcp === v ? (v ? '#f0883e' : 'var(--blue)') : 'transparent',
+                color: isMcp === v ? '#fff' : 'var(--muted)' }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '14px 18px' }}>
+          {/* Identity row */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 54 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Icon</div>
+              <input value={form.icon} onChange={e => set('icon', e.target.value)} maxLength={2}
+                style={{ ...INPUT_STYLE, textAlign: 'center', fontSize: 20, padding: '3px' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Agent Name *</div>
+              <input value={form.label} onChange={e => set('label', e.target.value)} placeholder="My Custom Analyst"
+                style={{ ...INPUT_STYLE, fontWeight: 600, fontSize: 12 }} />
+            </div>
+            <div style={{ width: 44 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Color</div>
+              <input type="color" value={form.color} onChange={e => set('color', e.target.value)}
+                style={{ width: '100%', height: 32, padding: 2, background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Description</div>
+            <input value={form.desc} onChange={e => set('desc', e.target.value)} placeholder="What this agent does…"
+              style={INPUT_STYLE} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 110 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Category</div>
+              <select value={form.category} onChange={e => set('category', e.target.value)}
+                style={{ ...INPUT_STYLE }}>
+                {['Input','Analysis','Generation','Control','Output','External'].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Input Types (comma-sep)</div>
+              <input value={form.inputs} onChange={e => set('inputs', e.target.value)} placeholder="source, analysis"
+                style={{ ...INPUT_STYLE, fontFamily: 'monospace' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Output Types</div>
+              <input value={form.outputs} onChange={e => set('outputs', e.target.value)} placeholder="custom-output"
+                style={{ ...INPUT_STYLE, fontFamily: 'monospace' }} />
+            </div>
+          </div>
+
+          {/* Governance section */}
+          <div style={{ padding: '8px 10px', background: '#0d111766', border: '1px solid var(--border)', borderRadius: 5, marginBottom: 12 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--purple)', textTransform: 'uppercase', marginBottom: 4 }}>◈ watsonx.gov</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 2 }}>Risk Tier</div>
+                <select defaultValue="Low"
+                  style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', color: 'var(--text)', fontSize: 10 }}>
+                  {['Low','Medium','High'].map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 2 }}>Validation Required</div>
+                <select defaultValue="Human review"
+                  style={{ width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', color: 'var(--text)', fontSize: 10 }}>
+                  {['None','Human review','Automated tests','Both'].map(v => <option key={v}>{v}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 5 }}>Runs are automatically tracked in the Governance dashboard → Live Runs tab.</div>
+          </div>
+
+          {/* LLM fields */}
+          {!isMcp && (
+            <>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Default Model</div>
+                <select value={form.defaultModel} onChange={e => set('defaultModel', e.target.value)} style={INPUT_STYLE}>
+                  {MODELS.map(m => <option key={m.id} value={m.id}>{m.icon} {m.label} — {m.tier}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>System Prompt *</div>
+                <textarea value={form.systemPrompt} onChange={e => set('systemPrompt', e.target.value)} rows={6}
+                  placeholder="You are an expert in… Your task is to… Output format: …"
+                  style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'monospace', fontSize: 10, lineHeight: 1.6 }} />
+                <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 3 }}>All upstream agent outputs are appended to the user message automatically.</div>
+              </div>
+            </>
+          )}
+
+          {/* MCP fields */}
+          {isMcp && (
+            <>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>MCP Server URL (HTTP) *</div>
+                <input value={form.serverUrl} onChange={e => set('serverUrl', e.target.value)}
+                  placeholder="http://localhost:3000/mcp"
+                  style={{ ...INPUT_STYLE, fontFamily: 'monospace' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Auth Token</div>
+                  <input type="password" value={form.authToken} onChange={e => set('authToken', e.target.value)}
+                    style={{ ...INPUT_STYLE, fontFamily: 'monospace' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Tool Name</div>
+                  <input value={form.toolName} onChange={e => set('toolName', e.target.value)}
+                    placeholder="read_file"
+                    style={{ ...INPUT_STYLE, fontFamily: 'monospace' }} />
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Default Tool Arguments (JSON)</div>
+                <textarea value={form.toolArgs} onChange={e => set('toolArgs', e.target.value)} rows={3}
+                  placeholder='{"query": "{{businessRules}}"}'
+                  style={{ ...INPUT_STYLE, resize: 'vertical', fontFamily: 'monospace', fontSize: 10 }} />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, flexShrink: 0 }}>
+          <button onClick={onCancel} style={{ background: 'var(--surface2)', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={save} disabled={!canSave}
+            style={{ background: 'var(--purple)', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontSize: 12, fontWeight: 700, cursor: canSave ? 'pointer' : 'not-allowed', opacity: canSave ? 1 : 0.5 }}>
+            ＋ Add to Library
           </button>
         </div>
       </div>
@@ -301,7 +629,7 @@ function HumanReviewModal({ context, onDecide }) {
 
 function NodeResultDrawer({ node, onClose }) {
   if (!node?.result) return null;
-  const def = getAgentDef(node.type);
+  const def = getAgentDefFull(node.type);
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000a', zIndex: 90, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}>
       <div style={{ width: Math.min(680, window.innerWidth * 0.8), background: 'var(--surface)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
@@ -341,6 +669,12 @@ export default function AgentPlayground({ onToast }) {
   const [runs, setRuns] = useState(loadRuns);
   const [showCatalog, setShowCatalog] = useState(false);
   const [selectedRun, setSelectedRun] = useState('');
+  const [customAgents, setCustomAgents] = useState(loadCustomAgents);
+  const [showCustomAgentModal, setShowCustomAgentModal] = useState(false);
+
+  // All agent types — built-ins + user-defined
+  const allAgentTypes = [...AGENT_TYPES, ...customAgents];
+  function getAgentDefFull(type) { return allAgentTypes.find(a => a.type === type) || AGENT_TYPES[0]; }
   const canvasRef = useRef();
   const gestureRef = useRef(null);
   const abortRef = useRef(false);
@@ -363,7 +697,7 @@ export default function AgentPlayground({ onToast }) {
 
   const nodes = Object.values(flow.nodes);
   const selectedNode = selectedId ? flow.nodes[selectedId] : null;
-  const selectedDef = selectedNode ? getAgentDef(selectedNode.type) : null;
+  const selectedDef = selectedNode ? getAgentDefFull(selectedNode.type) : null;
 
   function addLog(msg, level = 'info') {
     const entry = { ts: new Date().toLocaleTimeString(), msg, level };
@@ -461,8 +795,8 @@ export default function AgentPlayground({ onToast }) {
   // Returns true when the pending-edge's output type is compatible with `toType`
   function isCompatible(toType) {
     if (!pendingEdge) return false;
-    const fromDef = getAgentDef(flow.nodes[pendingEdge]?.type);
-    const toDef = getAgentDef(toType);
+    const fromDef = getAgentDefFull(flow.nodes[pendingEdge]?.type);
+    const toDef = getAgentDefFull(toType);
     if (!fromDef || !toDef) return false;
     if (toDef.inputs.includes('*')) return true;
     return fromDef.outputs.some(o => toDef.inputs.includes(o));
@@ -493,7 +827,7 @@ export default function AgentPlayground({ onToast }) {
       if (abortRef.current) break;
       const node = flow.nodes[nodeId];
       if (!node) continue;
-      const def = getAgentDef(node.type);
+      const def = getAgentDefFull(node.type);
       const model = getModel(node.model);
 
       dispatch({ type: 'SET_STATUS', id: nodeId, status: 'running' });
@@ -568,6 +902,18 @@ export default function AgentPlayground({ onToast }) {
     };
     saveRun(run);
     setRuns(loadRuns());
+
+    // Governance telemetry
+    saveGovernanceEntry({
+      id: run.id, ts: run.ts, flowName: run.flowName, status: run.status, duration,
+      agents: order.map(nid => {
+        const n = flow.nodes[nid]; const nr = nodeResults[nid];
+        return { type: n?.type, label: getAgentDefFull(n?.type)?.label || n?.type, model: n?.model,
+          status: nr?.status || 'skipped', inputTokens: nr?.result?.inputTokens || 0, outputTokens: nr?.result?.outputTokens || 0 };
+      }),
+      totalTokens: order.reduce((s, nid) => s + (nodeResults[nid]?.result?.inputTokens || 0) + (nodeResults[nid]?.result?.outputTokens || 0), 0),
+    });
+
     onToast?.(`Flow "${flow.name}" complete — ${passCount}/${order.length} agents succeeded`);
   }
 
@@ -589,6 +935,21 @@ export default function AgentPlayground({ onToast }) {
       setHumanReviewRequest(null);
     }
     addLog('✕ Execution cancelled', 'error');
+  }
+
+  // ── Custom agent management ───────────────────────────────────────────────
+  function onSaveCustomAgent(agent) {
+    const updated = [...customAgents, agent];
+    saveCustomAgents(updated);
+    setCustomAgents(updated);
+    setShowCustomAgentModal(false);
+    onToast?.(`Agent "${agent.label}" added to library`);
+  }
+  function onDeleteCustomAgent(id) {
+    const updated = customAgents.filter(a => a.id !== id);
+    saveCustomAgents(updated);
+    setCustomAgents(updated);
+    onToast?.('Custom agent removed');
   }
 
   // ── Flow catalog ──────────────────────────────────────────────────────────
@@ -622,7 +983,7 @@ export default function AgentPlayground({ onToast }) {
     const order = topoSort(run.flow.nodes, run.flow.edges);
     for (const nid of order) {
       const nr = run.nodeResults?.[nid];
-      const def = getAgentDef(run.flow.nodes[nid]?.type);
+      const def = getAgentDefFull(run.flow.nodes[nid]?.type);
       if (nr?.status === 'done') log.push({ ts: '', msg: `  ✓ ${def?.label || nid} (${nr.result?.outputTokens || 0} tokens)`, level: 'success' });
       else if (nr?.status === 'error') log.push({ ts: '', msg: `  ✗ ${def?.label || nid}: ${nr.result?.output?.slice(0, 80)}`, level: 'error' });
     }
@@ -665,35 +1026,43 @@ export default function AgentPlayground({ onToast }) {
               style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, boxSizing: 'border-box' }} />
           </div>
           <div style={{ fontSize: 9, color: 'var(--orange)', padding: '6px 8px', background: '#3a2a0044', borderRadius: 4, border: '1px solid var(--orange)33' }}>
-            In simulation mode, Human Reviewer auto-approves after 2s. In production, it would pause and wait.
+            Flow pauses here and waits for a human decision before continuing.
           </div>
         </>
       );
     }
 
+    if (type === 'mcp-client' || selectedDef?.isMcp) {
+      return <McpConfigPanel node={selectedNode} selectedId={selectedId} dispatch={dispatch} />;
+    }
+
+    // Model-aware LLM params
+    const caps = getModel(selectedNode.model)?.caps || { temperature: true, maxTokens: true, systemPrompt: true };
+    const providerName = getModel(selectedNode.model)?.provider === 'watsonx' ? 'watsonx' : 'this model';
     return (
       <>
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Temperature: {selectedNode.params.temperature ?? 0.2}</div>
+        <ParamField label={`Temperature: ${selectedNode.params.temperature ?? 0.2}`}
+          disabled={!caps.temperature} reason={providerName}>
           <input type="range" min={0} max={1} step={0.05} value={selectedNode.params.temperature ?? 0.2}
             onChange={e => dispatch({ type: 'SET_PARAM', id: selectedId, key: 'temperature', value: parseFloat(e.target.value) })}
             style={{ width: '100%' }} />
-        </div>
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Max Tokens</div>
+        </ParamField>
+
+        <ParamField label="Max Tokens" disabled={!caps.maxTokens} reason={providerName}>
           <select value={selectedNode.params.maxTokens || 4096}
             onChange={e => dispatch({ type: 'SET_PARAM', id: selectedId, key: 'maxTokens', value: parseInt(e.target.value) })}
             style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 6px', color: 'var(--text)', fontSize: 10 }}>
             {[1024, 2048, 4096, 6000, 8192].map(v => <option key={v} value={v}>{v.toLocaleString()}</option>)}
           </select>
-        </div>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 3 }}>Additional Instructions</div>
+        </ParamField>
+
+        <ParamField label="System Prompt Override" disabled={!caps.systemPrompt} reason="IBM models ignore system prompts — use instruction-tuned format in Additional Instructions instead">
+          <div style={{ fontSize: 9, color: 'var(--muted)', marginBottom: 3 }}>Additional Instructions</div>
           <textarea value={selectedNode.params.prompt || ''} rows={4}
             onChange={e => dispatch({ type: 'SET_PARAM', id: selectedId, key: 'prompt', value: e.target.value })}
-            placeholder="Extra instructions appended to the system prompt..."
+            placeholder="Extra instructions appended to the prompt…"
             style={{ width: '100%', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '5px 7px', color: 'var(--text)', fontSize: 10, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'monospace' }} />
-        </div>
+        </ParamField>
       </>
     );
   }
@@ -702,7 +1071,7 @@ export default function AgentPlayground({ onToast }) {
   const STATUS_COLOR = { running: 'var(--blue)', done: 'var(--green)', error: 'var(--red)' };
   const canvasW = Math.max(900, ...nodes.map(n => n.x + NODE_W + 80));
   const canvasH = Math.max(560, ...nodes.map(n => n.y + NODE_H + 80));
-  const cats = [...new Set(AGENT_TYPES.map(a => a.category))];
+  const cats = [...new Set(allAgentTypes.map(a => a.category))];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 90px)' }}>
@@ -757,15 +1126,22 @@ export default function AgentPlayground({ onToast }) {
 
       <div style={{ display: 'flex', flex: 1, gap: 10, overflow: 'hidden', minHeight: 0 }}>
         {/* ── Agent Palette ── */}
-        <div style={{ width: 185, flexShrink: 0, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
+        <div style={{ width: 192, flexShrink: 0, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: 8, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Agent Library</div>
-          {cats.map(cat => (
+          {[...new Set(allAgentTypes.map(a => a.category))].map(cat => (
             <div key={cat} style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 9, color: CATEGORY_COLOR[cat], fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, paddingBottom: 2, borderBottom: `1px solid ${CATEGORY_COLOR[cat]}33` }}>{cat}</div>
-              {AGENT_TYPES.filter(a => a.category === cat).map(agent => (
+              <div style={{ fontSize: 9, color: CATEGORY_COLOR[cat] || '#8b949e', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4, paddingBottom: 2, borderBottom: `1px solid ${CATEGORY_COLOR[cat] || '#8b949e'}33` }}>{cat}</div>
+              {allAgentTypes.filter(a => a.category === cat).map(agent => (
                 <div key={agent.type} draggable onDragStart={e => onSidebarDragStart(e, agent.type)}
-                  style={{ padding: '5px 7px', borderRadius: 4, marginBottom: 3, cursor: 'grab', background: 'var(--surface2)', border: '1px solid var(--border)', userSelect: 'none' }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                  style={{ padding: '5px 7px', borderRadius: 4, marginBottom: 3, cursor: 'grab', background: 'var(--surface2)', border: `1px solid ${agent.isCustom ? agent.color + '55' : 'var(--border)'}`, userSelect: 'none', position: 'relative' }}>
+                  {agent.isCustom && (
+                    <div
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={e => { e.stopPropagation(); onDeleteCustomAgent(agent.id); }}
+                      title="Remove custom agent"
+                      style={{ position: 'absolute', top: 3, right: 3, width: 14, height: 14, borderRadius: '50%', background: 'var(--red)', color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>×</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', paddingRight: agent.isCustom ? 14 : 0 }}>
                     <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{agent.icon}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: agent.color, lineHeight: 1.2 }}>{agent.label}</div>
@@ -773,10 +1149,10 @@ export default function AgentPlayground({ onToast }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-                    {agent.inputs.length > 0 && agent.inputs.map(t => (
+                    {(agent.inputs || []).filter(Boolean).map(t => (
                       <span key={`in-${t}`} style={{ fontSize: 7, background: '#58a6ff18', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 2, padding: '0 4px' }}>{t}</span>
                     ))}
-                    {agent.outputs.map(t => (
+                    {(agent.outputs || []).map(t => (
                       <span key={`out-${t}`} style={{ fontSize: 7, background: '#a371f718', color: '#a371f7', border: '1px solid #a371f744', borderRadius: 2, padding: '0 4px' }}>{t} ▶</span>
                     ))}
                   </div>
@@ -784,7 +1160,13 @@ export default function AgentPlayground({ onToast }) {
               ))}
             </div>
           ))}
-          <div style={{ fontSize: 9, color: 'var(--muted)', textAlign: 'center', marginTop: 4 }}>Drag → canvas</div>
+          <div style={{ marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+            <button onClick={() => setShowCustomAgentModal(true)}
+              style={{ width: '100%', background: 'var(--surface2)', border: '1px dashed var(--purple)', borderRadius: 5, padding: '6px 0', fontSize: 10, color: 'var(--purple)', fontWeight: 700, cursor: 'pointer' }}>
+              ＋ New Agent
+            </button>
+            <div style={{ fontSize: 9, color: 'var(--muted)', textAlign: 'center', marginTop: 4 }}>Drag → canvas</div>
+          </div>
         </div>
 
         {/* ── Canvas ── */}
@@ -824,7 +1206,7 @@ export default function AgentPlayground({ onToast }) {
 
               {/* Agent nodes */}
               {nodes.map(node => {
-                const def = getAgentDef(node.type);
+                const def = getAgentDefFull(node.type);
                 const model = getModel(node.model);
                 const isSel = selectedId === node.id;
                 const sc = node.status ? STATUS_COLOR[node.status] : null;
@@ -1017,10 +1399,10 @@ export default function AgentPlayground({ onToast }) {
       )}
       {resultNode && <NodeResultDrawer node={resultNode} onClose={() => setResultNode(null)} />}
       {humanReviewRequest && (
-        <HumanReviewModal
-          context={humanReviewRequest.context}
-          onDecide={handleHumanDecision}
-        />
+        <HumanReviewModal context={humanReviewRequest.context} onDecide={handleHumanDecision} />
+      )}
+      {showCustomAgentModal && (
+        <CustomAgentModal onSave={onSaveCustomAgent} onCancel={() => setShowCustomAgentModal(false)} />
       )}
     </div>
   );

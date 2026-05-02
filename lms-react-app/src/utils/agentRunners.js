@@ -1,12 +1,22 @@
 // Real agent execution — Claude (Anthropic) + IBM watsonx + GitHub source loading
 
+export const CUSTOM_AGENTS_KEY = 'lss-custom-agents';
+export const GOVERNANCE_KEY    = 'lss-governance-log';
+
+// caps: which parameters are meaningful for this model
 export const MODELS = [
-  { id: 'claude-opus-4-7',            apiId: 'claude-opus-4-7',                      label: 'Claude Opus 4.7',       provider: 'anthropic', tier: 'Premium',     icon: '⬡' },
-  { id: 'claude-sonnet-4-6',          apiId: 'claude-sonnet-4-6',                    label: 'Claude Sonnet 4.6',     provider: 'anthropic', tier: 'Balanced',    icon: '⬡' },
-  { id: 'claude-haiku-4-5-20251001',  apiId: 'claude-haiku-4-5-20251001',            label: 'Claude Haiku 4.5',      provider: 'anthropic', tier: 'Fast',        icon: '⬡' },
-  { id: 'ibm-granite-3-1-8b',         apiId: 'ibm/granite-3-1-8b-instruct',          label: 'IBM Granite 3.1 8B',    provider: 'watsonx',   tier: 'Balanced',    icon: '◆' },
-  { id: 'ibm-granite-34b-code',       apiId: 'ibm/granite-34b-code-instruct',        label: 'IBM Granite Code 34B',  provider: 'watsonx',   tier: 'Specialized', icon: '◆' },
-  { id: 'llama-3-1-70b',              apiId: 'meta-llama/llama-3-1-70b-instruct',    label: 'Llama 3.1 70B',         provider: 'watsonx',   tier: 'Open',        icon: '◈' },
+  { id: 'claude-opus-4-7',            apiId: 'claude-opus-4-7',                      label: 'Claude Opus 4.7',       provider: 'anthropic', tier: 'Premium',     icon: '⬡',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: true,  topP: false } },
+  { id: 'claude-sonnet-4-6',          apiId: 'claude-sonnet-4-6',                    label: 'Claude Sonnet 4.6',     provider: 'anthropic', tier: 'Balanced',    icon: '⬡',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: true,  topP: false } },
+  { id: 'claude-haiku-4-5-20251001',  apiId: 'claude-haiku-4-5-20251001',            label: 'Claude Haiku 4.5',      provider: 'anthropic', tier: 'Fast',        icon: '⬡',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: true,  topP: false } },
+  { id: 'ibm-granite-3-1-8b',         apiId: 'ibm/granite-3-1-8b-instruct',          label: 'IBM Granite 3.1 8B',    provider: 'watsonx',   tier: 'Balanced',    icon: '◆',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: false, topP: true  } },
+  { id: 'ibm-granite-34b-code',       apiId: 'ibm/granite-34b-code-instruct',        label: 'IBM Granite Code 34B',  provider: 'watsonx',   tier: 'Specialized', icon: '◆',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: false, topP: true  } },
+  { id: 'llama-3-1-70b',              apiId: 'meta-llama/llama-3-1-70b-instruct',    label: 'Llama 3.1 70B',         provider: 'watsonx',   tier: 'Open',        icon: '◈',
+    caps: { temperature: true,  maxTokens: true,  systemPrompt: false, topP: true  } },
 ];
 
 export function getModel(id) { return MODELS.find(m => m.id === id) || MODELS[1]; }
@@ -276,6 +286,74 @@ ${code ? `\n## Source Summary:\n${context.sourceFiles ? `${context.sourceFiles.t
   }
 }
 
+// ─── MCP Client (HTTP / Streamable-HTTP transport) ──────────────────────────
+// MCP spec: https://modelcontextprotocol.io  (stdio not supported in browsers)
+
+let _mcpRpcId = 1;
+
+async function mcpRequest(serverUrl, authToken, method, params = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const resp = await fetch(serverUrl, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ jsonrpc: '2.0', id: _mcpRpcId++, method, params }),
+  });
+  if (!resp.ok) throw new Error(`MCP ${resp.status}: ${resp.statusText}`);
+  const data = await resp.json();
+  if (data.error) throw new Error(`MCP error ${data.error.code}: ${data.error.message}`);
+  return data.result;
+}
+
+async function mcpInit(serverUrl, authToken) {
+  return mcpRequest(serverUrl, authToken, 'initialize', {
+    protocolVersion: '2024-11-05',
+    capabilities: { tools: {} },
+    clientInfo: { name: 're-agent-playground', version: '1.0' },
+  });
+}
+
+export async function listMcpTools(serverUrl, authToken) {
+  await mcpInit(serverUrl, authToken);
+  const result = await mcpRequest(serverUrl, authToken, 'tools/list');
+  return result?.tools || [];
+}
+
+export async function callMcpTool(serverUrl, authToken, toolName, toolArgs) {
+  await mcpInit(serverUrl, authToken);
+  const result = await mcpRequest(serverUrl, authToken, 'tools/call', {
+    name: toolName,
+    arguments: toolArgs,
+  });
+  // Tool result is an array of content blocks (text | image | resource)
+  return (result?.content || []).map(c => {
+    if (c.type === 'text') return c.text;
+    if (c.type === 'resource') return JSON.stringify(c.resource, null, 2);
+    return JSON.stringify(c);
+  }).join('\n\n') || JSON.stringify(result);
+}
+
+// Replace {{key}} placeholders in tool-arg values with upstream context strings.
+// Supports: {{sourceCode}}, {{businessRules}}, {{testCases}}, {{staticAnalysis}},
+//           {{inventory}}, {{dataFlow}}, {{documentation}}, {{humanReview}}
+function interpolateArgs(argsObj, context) {
+  const slots = {
+    sourceCode:     context.sourceFiles?.files?.map(f => `// ${f.path}\n${f.content}`).join('\n\n') || '',
+    businessRules:  context.businessRules  || '',
+    testCases:      context.testCases      || '',
+    staticAnalysis: context.staticAnalysis || '',
+    inventory:      context.inventory      || '',
+    dataFlow:       context.dataFlow       || '',
+    documentation:  context.documentation  || '',
+    humanReview:    context.humanReview    || '',
+  };
+  const json = JSON.stringify(argsObj);
+  const interpolated = json.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    slots[k] !== undefined ? slots[k].replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') : `{{${k}}}`
+  );
+  return JSON.parse(interpolated);
+}
+
 // ─── Main agent runner ───────────────────────────────────────────────────────
 
 export async function runAgentNode(node, context, apiKeys, onProgress) {
@@ -301,14 +379,64 @@ export async function runAgentNode(node, context, apiKeys, onProgress) {
   }
 
   if (agentType === 'human-review') {
-    onProgress('Human review gate — auto-approved after 2s');
-    await new Promise(r => setTimeout(r, 2000));
-    return {
-      agentType,
-      output: `✓ Human review approved\nApprover: ${params?.approvers || 'PM, BA'}\nTimestamp: ${new Date().toISOString()}\nContext reviewed: ${buildContextSummary(context)}`,
-      inputTokens: 0,
-      outputTokens: 0,
-    };
+    // Handled entirely in AgentPlayground — should not reach here in normal flow
+    onProgress('Human review gate — auto-approved (no UI context)');
+    await new Promise(r => setTimeout(r, 1000));
+    return { agentType, output: `Auto-approved (no UI)\nTimestamp: ${new Date().toISOString()}`, inputTokens: 0, outputTokens: 0 };
+  }
+
+  if (agentType === 'mcp-client') {
+    const { serverUrl, authToken = '', toolName, toolArgs = '{}', retries = 2 } = params || {};
+    if (!serverUrl?.trim()) throw new Error('MCP server URL is required');
+    if (!toolName?.trim()) throw new Error('Tool name is required — use "Discover Tools" in the config panel');
+
+    let parsedArgs;
+    try { parsedArgs = JSON.parse(toolArgs); }
+    catch { throw new Error('Tool arguments must be valid JSON'); }
+
+    const interpolated = interpolateArgs(parsedArgs, context);
+
+    onProgress(`Connecting to ${serverUrl} …`);
+    let lastErr;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        if (attempt > 0) {
+          onProgress(`Retry ${attempt}/${retries} after error: ${lastErr?.message}`);
+          await new Promise(r => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+        }
+        onProgress(`Calling tool "${toolName}" …`);
+        const output = await callMcpTool(serverUrl, authToken, toolName, interpolated);
+        onProgress(`Tool returned ${output.length} chars`);
+        return {
+          agentType,
+          output: `MCP Tool: ${toolName}\nServer: ${serverUrl}\nArgs: ${JSON.stringify(interpolated, null, 2)}\n\n${'─'.repeat(60)}\n\n${output}`,
+          inputTokens: 0,
+          outputTokens: 0,
+        };
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr;
+  }
+
+  // Custom agent (LLM or MCP) defined by the user in the playground
+  if (!SYSTEM_PROMPTS[agentType]) {
+    const customList = (() => { try { return JSON.parse(localStorage.getItem(CUSTOM_AGENTS_KEY) || '[]'); } catch { return []; } })();
+    const customDef = customList.find(a => a.type === agentType);
+    if (customDef) {
+      if (customDef.isMcp) {
+        const mcpParams = { ...customDef.defaultParams, ...params };
+        return runAgentNode({ ...node, type: 'mcp-client', params: mcpParams }, context, apiKeys, onProgress);
+      }
+      if (!model) throw new Error(`Model "${modelId}" not configured for custom agent "${customDef.label}"`);
+      const sysPrompt = [customDef.systemPrompt, params?.prompt?.trim()].filter(Boolean).join('\n\n');
+      const userContent = userPromptFor('report-compiler', context); // full context as user message
+      onProgress(`Calling ${model.label} for "${customDef.label}"...`);
+      const result = await callLLM(model, sysPrompt, userContent, params, apiKeys);
+      onProgress(`Done — ${result.outputTokens} tokens`);
+      return { agentType, output: result.content, inputTokens: result.inputTokens, outputTokens: result.outputTokens };
+    }
   }
 
   if (!model) throw new Error(`Unknown model: ${modelId}`);
@@ -335,6 +463,7 @@ export function mergeIntoContext(context, nodeResult) {
     'doc-writer':      'documentation',
     'human-review':    'humanReview',
     'report-compiler': 'report',
+    'mcp-client':      'mcpResult',
   };
   const key = map[nodeResult.agentType];
   if (!key) return context;
@@ -367,4 +496,13 @@ export function topoSort(nodes, edges) {
   // Append any unconnected nodes not yet sorted
   ids.filter(id => !order.includes(id)).forEach(id => order.push(id));
   return order;
+}
+
+// Persist a governance entry so Governance.jsx can show live run data
+export function saveGovernanceEntry(entry) {
+  try {
+    const log = JSON.parse(localStorage.getItem(GOVERNANCE_KEY) || '[]');
+    log.unshift(entry);
+    localStorage.setItem(GOVERNANCE_KEY, JSON.stringify(log.slice(0, 100)));
+  } catch { /* non-critical */ }
 }

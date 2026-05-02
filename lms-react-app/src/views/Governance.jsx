@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { GOVERNANCE_KEY } from '../utils/agentRunners';
 
 const KPIS = [
   { label: 'Rules Extracted',    value: 14,    unit: '',   color: 'var(--blue)',   trend: '+2', icon: '📐', desc: 'Business rules identified from source' },
@@ -61,6 +62,17 @@ const OUTCOME_COLOR = { pass: 'var(--green)', fail: 'var(--red)' };
 
 export default function Governance() {
   const [section, setSection] = useState('overview');
+  const [liveRuns, setLiveRuns] = useState([]);
+
+  useEffect(() => {
+    function load() {
+      try { setLiveRuns(JSON.parse(localStorage.getItem(GOVERNANCE_KEY) || '[]')); } catch { setLiveRuns([]); }
+    }
+    load();
+    // Refresh when storage changes (e.g. a playground run completes)
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
+  }, []);
 
   const sections = [
     { id: 'overview',    label: 'Overview' },
@@ -69,6 +81,7 @@ export default function Governance() {
     { id: 'audit',       label: 'Audit Trail' },
     { id: 'drift',       label: 'Drift Detection' },
     { id: 'explainability', label: 'Explainability' },
+    { id: 'live',        label: `Live Runs${liveRuns.length ? ` (${liveRuns.length})` : ''}` },
   ];
 
   return (
@@ -275,6 +288,44 @@ export default function Governance() {
               </div>
               <div style={{ fontSize: 10, color: 'var(--muted)', marginBottom: 4 }}><strong>Method:</strong> {e.method}</div>
               <div style={{ fontSize: 10, color: 'var(--muted)' }}><strong>Samples:</strong> {e.samples} items analyzed</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Live Runs (from playground) ── */}
+      {section === 'live' && (
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Live Run Telemetry</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>
+            Every Agent Playground execution writes here. Custom agents and MCP tools appear alongside built-in agents.
+          </div>
+          {liveRuns.length === 0 && (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', border: '1px dashed var(--border)', borderRadius: 6 }}>
+              No runs yet — execute a flow in the Agent Playground to populate this view.
+            </div>
+          )}
+          {liveRuns.map(run => (
+            <div key={run.id} style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)' }}>{run.flowName}</span>
+                <span style={{ fontSize: 9, background: run.status === 'success' ? '#1f6a2522' : '#6a1f1f22', color: run.status === 'success' ? 'var(--green)' : 'var(--red)', border: `1px solid ${run.status === 'success' ? 'var(--green)' : 'var(--red)'}44`, borderRadius: 3, padding: '1px 6px' }}>
+                  {run.status}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>{new Date(run.ts).toLocaleString()}</span>
+                <span style={{ fontSize: 10, color: 'var(--muted)' }}>⏱ {run.duration}s</span>
+                <span style={{ fontSize: 10, color: 'var(--blue)' }}>⬡ {run.totalTokens?.toLocaleString() || 0} tokens</span>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(run.agents || []).map((a, i) => (
+                  <div key={i} style={{ padding: '3px 8px', borderRadius: 4, fontSize: 9, background: a.status === 'done' ? '#1f6a2522' : a.status === 'error' ? '#6a1f1f22' : '#21262d',
+                    color: a.status === 'done' ? 'var(--green)' : a.status === 'error' ? 'var(--red)' : 'var(--muted)',
+                    border: `1px solid ${a.status === 'done' ? 'var(--green)' : a.status === 'error' ? 'var(--red)' : 'var(--border)'}44` }}>
+                    {a.status === 'done' ? '✓' : a.status === 'error' ? '✗' : '○'} {a.label}
+                    {a.outputTokens > 0 && <span style={{ opacity: 0.6, marginLeft: 4 }}>{a.outputTokens}tok</span>}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
