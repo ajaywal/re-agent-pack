@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RE Agent Pack ∞ — Infinity Canvas</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:   #0c2554;
+  --navy2:  #0f2d63;
+  --canvas: #060e1f;
+  --surface:#0d1a35;
+  --rail:   #0a1628;
+  --amber:  #f0a500;
+  --amber2: #ffc542;
+  --amber3: rgba(240,165,0,.15);
+  --blue:   #1e73be;
+  --blue2:  rgba(30,115,190,.18);
+  --green:  #1a7a4a;
+  --teal:   #0d7377;
+  --red:    #c0392b;
+  --border: rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.14);
+  --text:   rgba(255,255,255,0.85);
+  --muted:  rgba(255,255,255,0.45);
+  --rail-w: 220px;
+  --rail-w-col: 48px;
+  --bottom-h: 52px;
+  --bottom-h-exp: 280px;
+  --top-h: 44px;
+  --tr: 240ms cubic-bezier(.4,0,.2,1);
+}
+
+html, body { width:100%; height:100%; overflow:hidden; font-family:'DM Sans',sans-serif; background:var(--canvas); color:var(--text); }
+
+/* SHELL GRID */
+#shell {
+  display: grid;
+  grid-template-areas: "top top top" "left canvas right" "left bottom right";
+  grid-template-rows: var(--top-h) 1fr var(--bottom-h);
+  grid-template-columns: var(--rail-w) 1fr var(--rail-w);
+  width: 100vw; height: 100vh;
+  transition: grid-template-columns var(--tr), grid-template-rows var(--tr);
+}
+#shell.lc  { grid-template-columns: var(--rail-w-col) 1fr var(--rail-w); }
+#shell.rc  { grid-template-columns: var(--rail-w) 1fr var(--rail-w-col); }
+#shell.bc  { grid-template-columns: var(--rail-w-col) 1fr var(--rail-w-col); }
+#shell.be  { grid-template-rows: var(--top-h) 1fr var(--bottom-h-exp); }
+
+/* TOP BAR */
+#topbar {
+  grid-area: top;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  background: var(--rail);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+  user-select: none;
+}
+.tb-brand { display:flex;align-items:center;gap:8px;font-family:'DM Serif Display',serif;font-size:15px;color:#fff;margin-right:8px; }
+.tb-brand span { color:var(--amber2); }
+.tb-sep { width:1px;height:20px;background:var(--border2);margin:0 4px; }
+.tb-pill {
+  display:flex;align-items:center;gap:6px;
+  background:var(--border);border:1px solid var(--border2);
+  border-radius:6px;padding:4px 10px;font-size:11.5px;color:var(--muted);
+  cursor:pointer;transition:background 120ms,color 120ms;
+}
+.tb-pill:hover { background:rgba(255,255,255,.1);color:var(--text); }
+.tb-pill.active { background:var(--amber3);border-color:rgba(240,165,0,.35);color:var(--amber2); }
+.tb-pill .dot { width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0; }
+.tb-spacer { flex:1; }
+.tb-icon-btn {
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;cursor:pointer;font-size:15px;color:var(--muted);
+  transition:background 120ms,color 120ms;border:none;background:transparent;
+}
+.tb-icon-btn:hover { background:var(--border);color:var(--text); }
+
+/* LEFT RAIL */
+#left-rail {
+  grid-area: left;
+  background: var(--rail);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  z-index: 9;
+}
+.rail-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px 8px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.rail-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);transition:opacity var(--tr); }
+.lc .rail-title, .bc .rail-title { opacity:0;pointer-events:none; }
+.collapse-btn {
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+  border-radius:4px;cursor:pointer;font-size:12px;color:var(--muted);
+  transition:all 120ms;border:none;background:transparent;flex-shrink:0;
+}
+.collapse-btn:hover { background:var(--border);color:var(--text); }
+.rail-scroll { flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 0; }
+.rail-scroll::-webkit-scrollbar { width:3px; }
+.rail-scroll::-webkit-scrollbar-thumb { background:var(--border2);border-radius:2px; }
+
+/* SECTION GROUPS */
+.rail-section { margin-bottom:4px; }
+.section-toggle {
+  display:flex;align-items:center;gap:8px;padding:5px 12px;
+  cursor:pointer;font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--muted);transition:color 120ms;user-select:none;white-space:nowrap;
+}
+.section-toggle:hover { color:var(--text); }
+.section-toggle .arrow { font-size:9px;transition:transform 180ms;flex-shrink:0; }
+.section-toggle.open .arrow { transform:rotate(90deg); }
+.section-body { overflow:hidden;transition:max-height 200ms ease;max-height:0; }
+.section-body.open { max-height:700px; }
+
+/* STEP ITEMS */
+.step-item {
+  display:flex;align-items:center;gap:10px;padding:7px 12px;
+  cursor:pointer;font-size:12px;color:rgba(255,255,255,.7);
+  transition:background 120ms,color 120ms;white-space:nowrap;position:relative;
+}
+.step-item:hover { background:rgba(255,255,255,.04);color:#fff; }
+.step-item.active { background:var(--amber3);color:var(--amber2); }
+.step-item.active::before { content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--amber); }
+.step-num {
+  width:20px;height:20px;border-radius:50%;background:var(--border);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+  flex-shrink:0;color:var(--muted);
+}
+.step-item.active .step-num { background:var(--amber3);border-color:rgba(240,165,0,.4);color:var(--amber2); }
+.step-item.done .step-num { background:rgba(26,122,74,.2);border-color:rgba(26,122,74,.4);color:#6ee0a0; }
+.step-label { flex:1;overflow:hidden;text-overflow:ellipsis;transition:opacity var(--tr); }
+.lc .step-label, .bc .step-label { opacity:0; }
+
+/* RIGHT RAIL */
+#right-rail {
+  grid-area: right;
+  background: var(--rail);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  z-index: 9;
+}
+.rc .right-rail-title, .bc .right-rail-title { opacity:0;pointer-events:none; }
+
+/* CANVAS AREA */
+#canvas-area {
+  grid-area: canvas;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: var(--canvas);
+}
+
+/* TABS */
+#tab-bar {
+  display:flex;align-items:center;height:36px;flex-shrink:0;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 8px;gap:2px;overflow-x:auto;
+}
+#tab-bar::-webkit-scrollbar { display:none; }
+.tab {
+  display:flex;align-items:center;gap:7px;padding:5px 12px;
+  border-radius:6px 6px 0 0;cursor:pointer;font-size:11.5px;
+  color:var(--muted);white-space:nowrap;border:1px solid transparent;
+  border-bottom:none;transition:all 120ms;flex-shrink:0;
+}
+.tab:hover { color:var(--text);background:rgba(255,255,255,.04); }
+.tab.active { color:#fff;background:var(--canvas);border-color:var(--border);border-bottom-color:var(--canvas); }
+.tab-icon { font-size:12px; }
+.tab-close { width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transition:opacity 120ms;color:var(--muted); }
+.tab:hover .tab-close { opacity:1; }
+.tab-close:hover { background:rgba(255,255,255,.1);color:#fff; }
+.tab-add { width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:5px;cursor:pointer;font-size:18px;color:var(--muted);transition:all 120ms;margin-left:4px;flex-shrink:0; }
+.tab-add:hover { background:var(--border);color:var(--text); }
+
+/* CANVAS */
+#canvas {
+  flex:1;position:relative;overflow:hidden;cursor:default;
+}
+#canvas.connect-mode { cursor:crosshair; }
+#canvas.pan-mode { cursor:grab; }
+#canvas.pan-mode.panning { cursor:grabbing; }
+#canvas-grid {
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle, rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size:28px 28px;pointer-events:none;
+}
+#canvas-transform { position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform; }
+#connections-svg { position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible; }
+.connection-path { fill:none;stroke-width:1.5;opacity:.55;transition:opacity 120ms; }
+.connection-path:hover { opacity:1; }
+.connection-path.type-calls   { stroke:#7ec8f7; }
+.connection-path.type-handles { stroke:#6ee0a0; }
+.connection-path.type-governs { stroke:var(--amber); }
+.connection-path.type-custom  { stroke:#c084fc;stroke-dasharray:5 3; }
+.connection-label { font-size:9px;fill:rgba(255,255,255,.4);font-family:'DM Sans',sans-serif; }
+
+/* NODES */
+.c-node {
+  position:absolute;border-radius:10px;border:1px solid var(--border2);
+  background:var(--surface);padding:10px 12px;min-width:155px;max-width:205px;
+  cursor:move;user-select:none;transition:box-shadow 120ms,border-color 120ms;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+.c-node:hover { border-color:rgba(255,255,255,.25);box-shadow:0 6px 28px rgba(0,0,0,.5); }
+.c-node.selected { border-color:var(--amber)!important;box-shadow:0 0 0 2px rgba(240,165,0,.2); }
+.c-node.csrc { border-color:#c084fc!important;box-shadow:0 0 0 2px rgba(192,132,252,.25); }
+.c-node::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0; }
+.c-node.type-screen::before  { background:var(--blue); }
+.c-node.type-rule::before    { background:var(--amber); }
+.c-node.type-service::before { background:var(--teal); }
+.c-node.type-api::before     { background:var(--green); }
+.c-node.type-gateway::before { background:#8b5cf6; }
+.node-eyebrow { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;margin-bottom:4px; }
+.type-screen  .node-eyebrow { color:#7ec8f7; }
+.type-rule    .node-eyebrow { color:var(--amber2); }
+.type-service .node-eyebrow { color:#5cd4d8; }
+.type-api     .node-eyebrow { color:#6ee0a0; }
+.type-gateway .node-eyebrow { color:#c084fc; }
+.node-title { font-size:12px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:5px; }
+.node-sub   { font-size:10px;color:var(--muted);margin-bottom:4px;line-height:1.3; }
+.node-meta  { font-size:10.5px;color:rgba(255,255,255,.55);line-height:1.4; }
+.node-badges { display:flex;flex-wrap:wrap;gap:3px;margin-top:6px; }
+.node-badge { font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap; }
+.badge-priority { background:rgba(240,165,0,.15);color:var(--amber2);border:1px solid rgba(240,165,0,.3); }
+.badge-standard { background:rgba(26,122,74,.15);color:#6ee0a0;border:1px solid rgba(26,122,74,.3); }
+.badge-high     { background:rgba(30,115,190,.15);color:#7ec8f7;border:1px solid rgba(30,115,190,.3); }
+.badge-code     { background:rgba(255,255,255,.07);color:rgba(255,255,255,.55);border:1px solid var(--border2); }
+.badge-ext      { background:rgba(139,92,246,.15);color:#c084fc;border:1px solid rgba(139,92,246,.3); }
+.connect-handle {
+  position:absolute;right:-5px;top:50%;transform:translateY(-50%);
+  width:10px;height:10px;border-radius:50%;
+  background:var(--amber2);border:2px solid var(--canvas);
+  cursor:crosshair;opacity:0;transition:opacity 120ms;z-index:5;
+}
+.c-node:hover .connect-handle { opacity:1; }
+
+/* CANVAS TOOLBAR */
+#canvas-toolbar {
+  position:absolute;bottom:14px;right:14px;
+  display:flex;gap:4px;background:var(--surface);
+  border:1px solid var(--border2);border-radius:10px;
+  padding:5px 6px;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.ct-btn {
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  border-radius:7px;cursor:pointer;font-size:15px;color:var(--muted);
+  transition:all 120ms;border:none;background:transparent;
+}
+.ct-btn:hover { background:var(--border);color:var(--text); }
+.ct-btn.active { background:var(--amber3);color:var(--amber2); }
+
+/* MINIMAP */
+#minimap {
+  position:absolute;bottom:14px;left:14px;
+  width:130px;height:86px;background:rgba(6,14,31,.9);
+  border:1px solid var(--border2);border-radius:8px;
+  z-index:20;overflow:hidden;
+}
+#minimap-viewport {
+  position:absolute;border:1px solid rgba(240,165,0,.5);
+  background:rgba(240,165,0,.05);pointer-events:none;
+}
+.mm-node {
+  position:absolute;border-radius:2px;opacity:.7;
+}
+
+/* BOTTOM STRIP */
+#bottom-strip {
+  grid-area: bottom;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  z-index: 9;
+}
+.strip-header {
+  display:flex;align-items:center;gap:8px;padding:0 14px;
+  height:var(--bottom-h);flex-shrink:0;cursor:pointer;
+  border-bottom:1px solid transparent;transition:border-color var(--tr);
+}
+.be .strip-header { border-bottom-color:var(--border); }
+.strip-prompt { flex:1;display:flex;align-items:center;gap:10px; }
+.strip-input {
+  flex:1;background:var(--canvas);border:1px solid var(--border2);
+  border-radius:8px;padding:7px 14px;font-size:12.5px;color:var(--text);
+  font-family:'DM Sans',sans-serif;outline:none;transition:border-color 120ms;
+}
+.strip-input::placeholder { color:var(--muted); }
+.strip-input:focus { border-color:rgba(240,165,0,.4); }
+.strip-send {
+  padding:7px 16px;background:var(--amber3);border:1px solid rgba(240,165,0,.35);
+  border-radius:8px;font-size:12px;font-weight:600;color:var(--amber2);
+  cursor:pointer;transition:all 120ms;white-space:nowrap;
+}
+.strip-send:hover { background:rgba(240,165,0,.25); }
+.strip-expand-icon { color:var(--muted);font-size:11px;transition:transform var(--tr); }
+.be .strip-expand-icon { transform:rotate(180deg); }
+.strip-body { flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:10px; }
+.strip-body::-webkit-scrollbar { width:3px; }
+.strip-body::-webkit-scrollbar-thumb { background:var(--border2);border-radius:2px; }
+.a-card { background:var(--canvas);border:1px solid var(--border);border-radius:8px;padding:10px 14px; }
+.a-card .act { font-size:11px;font-weight:700;color:var(--amber2);margin-bottom:6px; }
+.a-card .acb { font-size:11.5px;color:rgba(255,255,255,.7);line-height:1.55; }
+.a-chips { display:flex;gap:6px;flex-wrap:wrap;margin-top:8px; }
+.a-chip { font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px; }
+.ch-blue  { background:rgba(30,115,190,.15);color:#7ec8f7;border:1px solid rgba(30,115,190,.25); }
+.ch-teal  { background:rgba(13,115,119,.2);color:#5cd4d8;border:1px solid rgba(13,115,119,.3); }
+.ch-green { background:rgba(26,122,74,.15);color:#6ee0a0;border:1px solid rgba(26,122,74,.25); }
+.ch-amber { background:rgba(240,165,0,.12);color:var(--amber2);border:1px solid rgba(240,165,0,.25); }
+.ch-purple{ background:rgba(139,92,246,.12);color:#c084fc;border:1px solid rgba(139,92,246,.25); }
+
+/* TREE / GOV */
+.tree-item {
+  display:flex;align-items:center;gap:8px;padding:5px 12px;
+  cursor:pointer;font-size:11.5px;color:rgba(255,255,255,.65);
+  transition:background 120ms,color 120ms;white-space:nowrap;
+}
+.tree-item:hover { background:rgba(255,255,255,.04);color:#fff; }
+.tree-item.active { color:var(--amber2);background:var(--amber3); }
+.tree-icon { font-size:11px;flex-shrink:0; }
+.gov-stat { display:flex;align-items:center;justify-content:space-between;padding:5px 12px;font-size:11.5px; }
+.gov-label { color:var(--muted); }
+.gov-val { font-weight:700; }
+.gov-amber { color:var(--amber2); }
+.gov-green { color:#6ee0a0; }
+.gov-blue  { color:#7ec8f7; }
+
+/* LEGEND */
+#legend {
+  position:absolute;top:14px;right:14px;
+  background:rgba(10,22,40,.9);border:1px solid var(--border2);
+  border-radius:8px;padding:10px 12px;z-index:20;
+  font-size:10.5px;
+}
+.legend-row { display:flex;align-items:center;gap:7px;margin-bottom:5px; color:var(--muted); }
+.legend-row:last-child { margin-bottom:0; }
+.legend-line { width:22px;height:2px;border-radius:1px; flex-shrink:0; }
+.legend-dot  { width:10px;height:10px;border-radius:2px;flex-shrink:0; }
+
+/* DETAIL PANEL (right overlay) */
+#detail-panel {
+  position:absolute;top:0;right:0;bottom:0;width:260px;
+  background:rgba(10,22,40,.95);border-left:1px solid var(--border2);
+  backdrop-filter:blur(8px);z-index:30;
+  transform:translateX(100%);transition:transform 220ms ease;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:-4px 0 20px rgba(0,0,0,.4);
+}
+#detail-panel.open { transform:translateX(0); }
+#detail-panel .dp-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#detail-panel .dp-title { font-size:13px;font-weight:700;color:#fff; }
+#detail-panel .dp-close { cursor:pointer;color:var(--muted);font-size:18px;line-height:1;transition:color 120ms; }
+#detail-panel .dp-close:hover { color:#fff; }
+#detail-panel .dp-body { flex:1;overflow-y:auto;padding:12px 14px; }
+#detail-panel .dp-body::-webkit-scrollbar { width:3px; }
+#detail-panel .dp-body::-webkit-scrollbar-thumb { background:var(--border2); }
+.dp-row { display:flex;flex-direction:column;gap:3px;margin-bottom:12px; }
+.dp-row .lbl { font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted); }
+.dp-row .val { font-size:11.5px;color:var(--text);line-height:1.5; }
+.dp-divider { height:1px;background:var(--border);margin:8px 0; }
+</style>
+</head>
+<body>
+<div id="shell">
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <button class="tb-icon-btn" id="btn-toggle-left" title="Toggle pipeline panel">☰</button>
+  <div class="tb-brand">RE Agent Pack <span>∞</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-pill" style="pointer-events:none">
+    <div class="dot" style="background:#7ec8f7"></div>
+    TrackAll · Loan Maintenance
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-pill" id="btn-connect" title="Connect mode — drag handles to link nodes">⟶ Connect</div>
+  <div class="tb-pill" id="btn-pan" title="Pan mode">✥ Pan</div>
+  <div class="tb-pill" id="btn-layout" title="Auto-layout">&#8862; Layout</div>
+  <div class="tb-spacer"></div>
+  <div class="tb-pill" style="color:var(--amber2);border-color:rgba(240,165,0,.28);pointer-events:none">⛑ 25 Rules</div>
+  <div class="tb-pill" style="color:#6ee0a0;border-color:rgba(26,122,74,.28);pointer-events:none">● 9 Agents</div>
+  <button class="tb-icon-btn" id="btn-toggle-right" title="Toggle artifact browser">⊟</button>
+</div>
+
+<!-- LEFT RAIL -->
+<div id="left-rail">
+  <div class="rail-header">
+    <span class="rail-title">Pipeline</span>
+    <button class="collapse-btn" id="left-col-btn">◄</button>
+  </div>
+  <div class="rail-scroll">
+
+    <div class="rail-section">
+      <div class="section-toggle open" data-target="sec-steps"><span class="arrow">▶</span><span>Steps</span></div>
+      <div class="section-body open" id="sec-steps">
+        <div class="step-item done"  data-step="0"><div class="step-num">0</div><span class="step-label">Project Scanner</span></div>
+        <div class="step-item done"  data-step="1"><div class="step-num">1</div><span class="step-label">Analysis Planner</span></div>
+        <div class="step-item done"  data-step="2"><div class="step-num">2</div><span class="step-label">Screen Analyzer</span></div>
+        <div class="step-item active" data-step="3"><div class="step-num">3</div><span class="step-label">Rule Extractor</span></div>
+        <div class="step-item done"  data-step="4"><div class="step-num">4</div><span class="step-label">Dependency Mapper</span></div>
+        <div class="step-item done"  data-step="5"><div class="step-num">5</div><span class="step-label">Grounding Reviewer</span></div>
+        <div class="step-item"       data-step="7"><div class="step-num">7</div><span class="step-label">Doc Publisher</span></div>
+        <div class="step-item"       data-step="8"><div class="step-num">8</div><span class="step-label">Publication Review</span></div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="section-toggle" data-target="sec-agents"><span class="arrow">▶</span><span>Agents</span></div>
+      <div class="section-body" id="sec-agents">
+        <div class="tree-item"><span class="tree-icon">🤖</span>project-scanner</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>analysis-planner</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>screen-analyzer</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>rule-extractor</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>dependency-mapper</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>grounding-reviewer</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>document-publisher</div>
+        <div class="tree-item"><span class="tree-icon">🤖</span>publication-reviewer</div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="section-toggle" data-target="sec-config"><span class="arrow">▶</span><span>Config</span></div>
+      <div class="section-body" id="sec-config">
+        <div class="gov-stat"><span class="gov-label">Project</span><span class="gov-val gov-blue">TrackAll</span></div>
+        <div class="gov-stat"><span class="gov-label">Frontend</span><span class="gov-val">VC++ MFC</span></div>
+        <div class="gov-stat"><span class="gov-label">Backend</span><span class="gov-val">Tandem COBOL</span></div>
+        <div class="gov-stat"><span class="gov-label">Target UI</span><span class="gov-val gov-green">Angular</span></div>
+        <div class="gov-stat"><span class="gov-label">Target API</span><span class="gov-val gov-green">.NET Core</span></div>
+        <div class="gov-stat"><span class="gov-label">Target DB</span><span class="gov-val gov-green">Azure SQL</span></div>
+        <div class="gov-stat"><span class="gov-label">Temp</span><span class="gov-val">0 — deterministic</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CANVAS AREA -->
+<div id="canvas-area">
+
+  <div id="tab-bar">
+    <div class="tab active" data-view="rules-map"><span class="tab-icon">⬡</span><span>Rule → Service Map</span><span class="tab-close">×</span></div>
+    <div class="tab" data-view="traceability"><span class="tab-icon">🔗</span><span>Traceability</span><span class="tab-close">×</span></div>
+    <div class="tab" data-view="service-decomp"><span class="tab-icon">⚙</span><span>Service Decomp</span><span class="tab-close">×</span></div>
+    <div class="tab-add" title="New view">+</div>
+  </div>
+
+  <div id="canvas">
+    <div id="canvas-grid"></div>
+
+    <svg id="connections-svg">
+      <defs>
+        <marker id="arr-amber"  markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#f0a500" opacity=".7"/></marker>
+        <marker id="arr-blue"   markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7ec8f7" opacity=".7"/></marker>
+        <marker id="arr-green"  markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6ee0a0" opacity=".7"/></marker>
+        <marker id="arr-purple" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c084fc" opacity=".7"/></marker>
+      </defs>
+      <g id="connections-g"></g>
+      <line id="draw-line-el" x1="0" y1="0" x2="0" y2="0" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="5 3" opacity="0" pointer-events="none"/>
+    </svg>
+
+    <div id="canvas-transform"></div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <div class="legend-row"><div class="legend-line" style="background:#7ec8f7"></div>calls (Screen → Service)</div>
+      <div class="legend-row"><div class="legend-line" style="background:#6ee0a0"></div>handles (Rule → Service)</div>
+      <div class="legend-row"><div class="legend-line" style="background:#f0a500"></div>governs (Rule → Screen)</div>
+      <div class="legend-row"><div class="legend-line" style="background:#c084fc;border-top:1px dashed #c084fc"></div>custom connection</div>
+    </div>
+
+    <!-- Canvas toolbar -->
+    <div id="canvas-toolbar">
+      <button class="ct-btn" id="ct-zoom-in"  title="Zoom in">+</button>
+      <button class="ct-btn" id="ct-zoom-out" title="Zoom out">−</button>
+      <button class="ct-btn" id="ct-fit"      title="Fit to screen">⊡</button>
+      <button class="ct-btn" id="ct-minimap"  title="Toggle minimap">⊞</button>
+    </div>
+
+    <!-- Minimap -->
+    <div id="minimap"><div id="minimap-viewport"></div><canvas id="mm-canvas" width="130" height="86" style="position:absolute;inset:0;opacity:.4"></canvas></div>
+
+    <!-- Detail panel (slides in on node click) -->
+    <div id="detail-panel">
+      <div class="dp-header">
+        <div class="dp-title" id="dp-title">Node Detail</div>
+        <div class="dp-close" id="dp-close">×</div>
+      </div>
+      <div class="dp-body" id="dp-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- RIGHT RAIL -->
+<div id="right-rail">
+  <div class="rail-header">
+    <span class="rail-title right-rail-title">Artifacts &amp; Governance</span>
+    <button class="collapse-btn" id="right-col-btn">▶</button>
+  </div>
+  <div class="rail-scroll">
+
+    <div class="rail-section">
+      <div class="section-toggle open" data-target="sec-artifacts"><span class="arrow">▶</span><span>Artifacts</span></div>
+      <div class="section-body open" id="sec-artifacts">
+        <div class="tree-item active"><span class="tree-icon">📋</span>rule_register</div>
+        <div class="tree-item"><span class="tree-icon">🔗</span>traceability_matrix</div>
+        <div class="tree-item"><span class="tree-icon">⚙</span>service_decomposition</div>
+        <div class="tree-item"><span class="tree-icon">🗂</span>field_dictionary</div>
+        <div class="tree-item"><span class="tree-icon">📊</span>screen_action_api_estimation</div>
+        <div class="tree-item"><span class="tree-icon">📄</span>reverse_engineering_report</div>
+        <div class="tree-item"><span class="tree-icon">✓</span>rule_coverage_checklist</div>
+        <div class="tree-item"><span class="tree-icon">⛑</span>ambiguity_log</div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="section-toggle open" data-target="sec-gov"><span class="arrow">▶</span><span>Governance</span></div>
+      <div class="section-body open" id="sec-gov">
+        <div class="gov-stat"><span class="gov-label">Total Rules</span><span class="gov-val gov-amber">25</span></div>
+        <div class="gov-stat"><span class="gov-label">Active</span><span class="gov-val gov-green">25</span></div>
+        <div class="gov-stat"><span class="gov-label">⛑ Priority</span><span class="gov-val gov-amber">3</span></div>
+        <div class="gov-stat"><span class="gov-label">✓ Standard</span><span class="gov-val gov-green">22</span></div>
+        <div class="gov-stat"><span class="gov-label">Code-grounded</span><span class="gov-val gov-blue">21</span></div>
+        <div class="gov-stat"><span class="gov-label">Sample-only</span><span class="gov-val gov-amber">2</span></div>
+        <div class="gov-stat"><span class="gov-label">Unresolved</span><span class="gov-val gov-amber">2</span></div>
+        <div class="gov-stat"><span class="gov-label">Open Ambiguities</span><span class="gov-val gov-amber">2</span></div>
+        <div class="gov-stat"><span class="gov-label">Publication Gate</span><span class="gov-val gov-green">Go ✓</span></div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="section-toggle" data-target="sec-custom-conn"><span class="arrow">▶</span><span>Custom Connections</span></div>
+      <div class="section-body" id="sec-custom-conn">
+        <div id="custom-conn-list">
+          <div style="padding:8px 12px;font-size:11px;color:var(--muted);line-height:1.6">
+            No custom connections yet.<br>
+            Enable <strong style="color:var(--amber2)">⟶ Connect</strong> then drag a node’s handle to another node.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <div class="section-toggle" data-target="sec-final"><span class="arrow">▶</span><span>Final Output</span></div>
+      <div class="section-body" id="sec-final">
+        <div class="tree-item"><span class="tree-icon">📋</span>RE Business Requirements</div>
+        <div class="tree-item"><span class="tree-icon">⚙</span>RE Technical Specification</div>
+        <div class="tree-item"><span class="tree-icon">🏗</span>Architecture Flow (Current)</div>
+        <div class="tree-item"><span class="tree-icon">🚀</span>Modern Stack Flow</div>
+        <div class="tree-item"><span class="tree-icon">🔷</span>Modernization Blueprint</div>
+        <div class="tree-item"><span class="tree-icon">📊</span>API Taxonomy (18-col)</div>
+        <div class="tree-item"><span class="tree-icon">📄</span>Rendering Handoff</div>
+        <div class="tree-item"><span class="tree-icon">🗂</span>Publication Contract</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM STRIP -->
+<div id="bottom-strip">
+  <div class="strip-header" id="strip-toggle">
+    <div class="strip-prompt">
+      <input class="strip-input" id="analysis-input" type="text"
+        placeholder="Ask about rules, connections, or generate a custom analysis…"
+        onclick="event.stopPropagation()">
+      <button class="strip-send" onclick="runAnalysis()">Analyse</button>
+    </div>
+    <div class="strip-expand-icon">▲</div>
+  </div>
+  <div class="strip-body" id="strip-body">
+    <div class="a-card">
+      <div class="act">⛑ Priority Rules — Business Review Required Before Forward Engineering</div>
+      <div class="acb">3 rules carry Priority flags: <strong>R-L-008</strong> (lender form ID — sample-only evidence, table-backed production loading unconfirmed per ambiguity A-002), <strong>R-L-014</strong> (Modify Loan — TKA902 address-clear enforcement appears incomplete per A-001), plus one additional inferred rule. These block forward engineering sign-off until a business SME validates them.</div>
+      <div class="a-chips">
+        <span class="a-chip ch-amber">R-L-008 sample-only</span>
+        <span class="a-chip ch-amber">R-L-014 unresolved</span>
+        <span class="a-chip ch-blue">A-001 · A-002 open</span>
+      </div>
+    </div>
+    <div class="a-card">
+      <div class="act">🔗 Custom Connection Opportunity — KY ISO Cross-Layer Dependency</div>
+      <div class="acb">R-L-004 (KY ISO Pre-Call) creates a state-conditioned dependency spanning 3 layers: the UI gate in <em>LoanSearchDlg</em>, the integration branch in <em>CRataBaseServiceAdapter::GetQuote</em>, and the Tandem program <em>AIP930</em>. In the target Angular + .NET Core stack this becomes a conditional orchestration branch in <em>QuoteOrchestrationService</em> calling <em>KentuckyIsoGateway</em>. Use Connect mode to draw this cross-layer link visually.</div>
+      <div class="a-chips">
+        <span class="a-chip ch-teal">R-L-004 → QuoteOrchestration</span>
+        <span class="a-chip ch-teal">KY branch → AIP930 → KentuckyIsoGateway</span>
+      </div>
+    </div>
+    <div class="a-card">
+      <div class="act">⚙ Service Boundary Analysis — All 8 Candidates at High Confidence</div>
+      <div class="acb">The clearest boundary is read vs write: <strong>LoanQueryService</strong> (TKA900, read-only) vs <strong>LoanCommandService</strong> (TKA901/TKA902, create + modify). Mirror this directly in the .NET Core API split. <strong>QuoteOrchestrationService</strong> and <strong>EdiNotificationService</strong> are event-triggered integrations — keep them loosely coupled via domain events rather than direct service-to-service calls. All 5 gateway adapters (Tandem routing, RataBase, KY ISO, EDI dispatch) stay as infrastructure, not domain services.</div>
+      <div class="a-chips">
+        <span class="a-chip ch-green">5 services · High confidence</span>
+        <span class="a-chip ch-blue">3 gateway adapters</span>
+        <span class="a-chip ch-teal">Query / Command boundary confirmed</span>
+        <span class="a-chip ch-purple">Event-driven EDI + Quote</span>
+      </div>
+    </div>
+    <div class="a-card">
+      <div class="act">📊 Traceability Coverage — UI → Logic → Data → Integration</div>
+      <div class="acb">Every legacy artifact from <em>LoanSearchDlg</em> through <em>TKA900/901/902</em> to <em>LSS_LOAN_T</em> has a mapped modern target. All 14 visible rules on the canvas trace to at least one candidate service. The 18-column API Taxonomy provides full endpoint → rule → test coverage linkage ready for the forward engineering scaffold generator.</div>
+      <div class="a-chips">
+        <span class="a-chip ch-green">10 UI mappings</span>
+        <span class="a-chip ch-blue">5 service mappings</span>
+        <span class="a-chip ch-teal">6 gateway mappings</span>
+        <span class="a-chip ch-amber">25 rules → test stubs</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #shell -->
+
+<script>
+// ==========================================
+// NODE DATA
+// ==========================================
+const NODES = [
+  // SCREENS
+  { id:'s1', type:'screen', title:'LoanSearchDlg',  sub:'IDD_LOAN_SEARCH',
+    meta:'Search criteria entry, result list, downstream processing',
+    x:55, y:55, badges:[{t:'MFC Dialog',c:'badge-code'},{t:'3 actions',c:'badge-code'}],
+    detail: { Screen:'LoanSearchDlg (IDD_LOAN_SEARCH)', Actions:'Search, ProcessResult, AddLoan, ModifyLoan, Notify14E', Rules:'R-L-001, R-L-002, R-L-003, R-L-004, R-L-005, R-L-006, R-L-007, R-L-008', 'Target Component':'LoanSearchComponent (Angular)', 'Target Actions':'searchLoans() → GET /api/loans/search' } },
+  { id:'s2', type:'screen', title:'LoanAddDlg',    sub:'IDD_LOAN_ADD',
+    meta:'Add new loan record with identity and financial fields',
+    x:55, y:265, badges:[{t:'MFC Dialog',c:'badge-code'},{t:'1 action',c:'badge-code'}],
+    detail: { Screen:'LoanAddDlg (IDD_LOAN_ADD)', Actions:'Add', Rules:'R-L-009, R-L-010, R-L-011, R-L-012, R-L-013', 'Target Component':'AddLoanDialogComponent (Angular modal)', 'Target API':'POST /api/loans' } },
+  { id:'s3', type:'screen', title:'LoanModifyDlg', sub:'IDD_LOAN_MODIFY',
+    meta:'Pre-loaded loan edit with guarded transitions',
+    x:55, y:460, badges:[{t:'MFC Dialog',c:'badge-code'},{t:'1 action',c:'badge-code'}],
+    detail: { Screen:'LoanModifyDlg (IDD_LOAN_MODIFY)', Actions:'Save Changes', Rules:'R-L-014', 'Target Component':'ModifyLoanDialogComponent (Angular modal)', 'Target API':'PUT /api/loans/{loanNumber}' } },
+
+  // RULES
+  { id:'r1', type:'rule', title:'R-L-001', sub:'Search: ≥1 Criterion Required',
+    meta:'Prevents unrestricted query against LSS_LOAN_T',
+    x:298, y:30, badges:[{t:'Standard',c:'badge-standard'},{t:'code-grounded',c:'badge-code'},{t:'High',c:'badge-high'}],
+    detail: { 'Rule ID':'R-L-001', 'Plain English':'Users must enter at least one search value before running a search.', Grounding:'code-grounded', Evidence:'LoanRules.cpp::ValidateLoanForSearch; TKA900.cbl::2000-VALIDATE-INPUT', 'Review Priority':'Standard', Confidence:'High' } },
+  { id:'r2', type:'rule', title:'R-L-002', sub:'Loan Number: 10 Digits',
+    meta:'Shared key-format rule across search and create',
+    x:298, y:130, badges:[{t:'Standard',c:'badge-standard'},{t:'code-grounded',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-002', 'Plain English':'Loan number must be exactly 10 numeric digits when provided.', Grounding:'code-grounded', Evidence:'LoanRules.cpp + TKA901.cbl::2000-VALIDATE-ADD; LSS_LOAN_T.LOAN_NUM CHAR(10)', 'Review Priority':'Standard', Confidence:'High' } },
+  { id:'r3', type:'rule', title:'R-L-003', sub:'Quote: Approved State Required',
+    meta:'Non-approved states → manual underwriting',
+    x:298, y:225, badges:[{t:'Standard',c:'badge-standard'},{t:'code-grounded',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-003', 'Plain English':'A quote can only be requested for properties in approved states.', Grounding:'code-grounded', Evidence:'LoanRules.cpp::EnforceCarrierCoverage; RataBaseServiceAdapter.cpp::GetQuote', 'Review Priority':'Standard', Confidence:'High' } },
+  { id:'r4', type:'rule', title:'R-L-004', sub:'KY Quotes → ISO Pre-Call',
+    meta:'AIP930 must succeed before RataBase rating call',
+    x:298, y:320, badges:[{t:'Standard',c:'badge-standard'},{t:'Integration',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-004', 'Plain English':'Kentucky loans require an ISO advisory lookup before quote generation.', Grounding:'code-grounded', Evidence:'RataBaseServiceAdapter.cpp::GetQuote; TMELibAdapter.cpp::LoadRoutingTable; AIP930', 'Review Priority':'Standard', Confidence:'High', Note:'KY-only branch. Other states skip ISO call.' } },
+  { id:'r5', type:'rule', title:'R-L-005', sub:'Quote Triggered by QUOTE_REQD Flag',
+    meta:'From LSS_CYCLE_STEP_T.QUOTE_REQD column',
+    x:298, y:415, badges:[{t:'Standard',c:'badge-standard'},{t:'code-grounded',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-005', 'Plain English':'Quote generation is required only when the cycle configuration indicates QUOTE_REQD=Y.', Grounding:'code-grounded', Evidence:'LoanRules.cpp::RequiresQuote; TKA900.cbl::4000-QUERY-CYCLE-STEP', 'Review Priority':'Standard', Confidence:'High' } },
+  { id:'r8', type:'rule', title:'R-L-008', sub:'14E: Registered Form ID Required',
+    meta:'sample-only evidence — see ambiguity A-002',
+    x:298, y:510, badges:[{t:'⛑ Priority',c:'badge-priority'},{t:'sample-only',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-008', 'Plain English':'Only pre-registered lender form IDs are allowed for 14E dispatch.', Grounding:'sample-only', Evidence:'LoanRules.cpp::LoadLenderTargetForms (in-memory seed: LT-F100/200/300/400)', 'Review Priority':'⛑ Priority', Confidence:'Medium', Warning:'Table-backed production loading not evidenced. See A-002.' } },
+  { id:'r14', type:'rule', title:'R-L-014', sub:'Modify: Immutable Key + Controlled Updates',
+    meta:'ACTIVE→DELINQUENT→CLOSED only. UPB non-increasing.',
+    x:298, y:600, badges:[{t:'⛑ Priority',c:'badge-priority'},{t:'unresolved A-001',c:'badge-code'}],
+    detail: { 'Rule ID':'R-L-014', 'Plain English':'Loans can be modified only with approved status progression, non-increasing balance, and loan number immutable.', Grounding:'unresolved', Evidence:'LoanRules.cpp::ValidateLoanForModify; TKA902.cbl::3000-VALIDATE-MODIFY', 'Review Priority':'⛑ Priority', Confidence:'Medium', Warning:'Server-side address-clear enforcement in TKA902 appears incomplete. See A-001.' } },
+
+  // SERVICES
+  { id:'sv1', type:'service', title:'LoanQueryService',    sub:'GET /api/loans/search',
+    meta:'Read-only. Wraps TKA900 Tandem query path.',
+    x:570, y:55, badges:[{t:'High confidence',c:'badge-high'}],
+    detail: { Service:'LoanQueryService', Responsibilities:'Execute loan search and return loan + cycle context', API:'GET /api/loans/search', 'Legacy Programs':'TKA900 (3000-QUERY-LOAN + 4000-QUERY-CYCLE-STEP)', Rules:'R-L-001, R-L-002, R-L-005', Rationale:'Read-only, distinct Tandem query path from write operations', Confidence:'High' } },
+  { id:'sv2', type:'service', title:'LoanCommandService',  sub:'POST · PUT /api/loans',
+    meta:'Create + modify. TKA901/TKA902 write path.',
+    x:570, y:240, badges:[{t:'High confidence',c:'badge-high'}],
+    detail: { Service:'LoanCommandService', Responsibilities:'Create and modify loan records with server-enforced validation', APIs:'POST /api/loans; PUT /api/loans/{loanNumber}', 'Legacy Programs':'TKA901, TKA902', Rules:'R-L-009–R-L-013, R-L-014', Note:'A-001 impacts modify-address branch certainty', Confidence:'High' } },
+  { id:'sv3', type:'service', title:'QuoteOrchestrationService', sub:'POST /api/quotes/loan/{id}',
+    meta:'Conditional rating + KY ISO pre-call branch',
+    x:570, y:415, badges:[{t:'High confidence',c:'badge-high'}],
+    detail: { Service:'QuoteOrchestrationService', Responsibilities:'Determine quote requirement, coordinate RataBase call, KY ISO pre-call branch', API:'POST /api/quotes/loan/{loanNumber}', 'Legacy Adapters':'CRataBaseServiceAdapter, CKentuckyISOAdapter', Rules:'R-L-003, R-L-004, R-L-005', Rationale:'Conditional orchestration + external dependency separate from core CRUD', Confidence:'High' } },
+  { id:'sv4', type:'service', title:'EdiNotificationService', sub:'POST /api/edi/notifications/14e',
+    meta:'14E eligibility check, format selection, dispatch',
+    x:570, y:575, badges:[{t:'High confidence',c:'badge-high'}],
+    detail: { Service:'EdiNotificationService', Responsibilities:'14E eligibility, audit payload, format selection, gateway dispatch', API:'POST /api/edi/notifications/14e', 'Legacy Programs':'CEDINotificationWriter + TKA920 via 14E_NOTIFY mnemonic', Rules:'R-L-006, R-L-007, R-L-008', Rationale:'Event-driven integration with suppression logic', Confidence:'High' } },
+
+  // GATEWAYS
+  { id:'gw1', type:'gateway', title:'TandemRoutingGateway', sub:'CTMELibAdapter → mnemonic',
+    meta:'Shared infra: LOAN_SEARCH, ADD_LOAN, MODIFY_LOAN, 14E_NOTIFY',
+    x:830, y:180, badges:[{t:'Infrastructure',c:'badge-code'},{t:'TLS 1.2 TCP',c:'badge-code'}],
+    detail: { Gateway:'TandemRoutingGateway', 'Legacy Class':'CTMELibAdapter', Transport:'TLS 1.2 TCP (fgatetcp)', RoutingTable:'LSS001T', Mnemonics:'LOAN_SEARCH, ADD_LOAN, MODIFY_LOAN, 14E_NOTIFY, KY_ISO_QUERY', Programs:'TKA900, TKA901, TKA902, TKA920, AIP930', Rationale:'Single infra adapter shared across all integration paths' } },
+  { id:'gw2', type:'gateway', title:'RatingGateway', sub:'CRataBaseServiceAdapter',
+    meta:'External RataBase + KY ISO adapter. KY-only branch.',
+    x:830, y:420, badges:[{t:'External',c:'badge-ext'},{t:'KY branch',c:'badge-code'}],
+    detail: { Gateway:'RatingGateway', 'Legacy Classes':'CRataBaseServiceAdapter + CKentuckyISOAdapter', Endpoint:'External RataBase web service', Branch:'KY state only: KY_ISO_QUERY → AIP930 must succeed first', Rules:'R-L-003, R-L-004', Rationale:'Keeps external rating protocol isolated from domain logic' } },
+];
+
+const WIRED = [
+  ['s1','sv1','calls'],['s2','sv2','calls'],['s3','sv2','calls'],
+  ['r1','sv1','handles'],['r2','sv1','handles'],
+  ['r3','sv3','handles'],['r4','sv3','handles'],['r5','sv3','handles'],
+  ['r8','sv4','handles'],['r14','sv2','handles'],
+  ['sv1','gw1','calls'],['sv2','gw1','calls'],
+  ['sv3','gw2','calls'],['sv4','gw1','calls'],
+];
+
+// ==========================================
+// STATE
+// ==========================================
+let tx = 30, ty = 30, tscale = 1;
+let mode = 'select';
+let connecting = { active:false, srcId:null, srcEl:null };
+let customConns = [], connId = 0;
+const shell = document.getElementById('shell');
+const ct = document.getElementById('canvas-transform');
+const cg = document.getElementById('connections-g');
+const dl = document.getElementById('draw-line-el');
+const cnv = document.getElementById('canvas');
+
+// ==========================================
+// BUILD NODES
+// ==========================================
+function buildNodes() {
+  NODES.forEach(n => {
+    const el = document.createElement('div');
+    el.className = `c-node type-${n.type}`;
+    el.id = `node-${n.id}`;
+    el.style.cssText = `left:${n.x}px;top:${n.y}px`;
+    el.dataset.id = n.id;
+    const bhtml = (n.badges||[]).map(b => `<span class="node-badge ${b.c}">${b.t}</span>`).join('');
+    el.innerHTML = `
+      <div class="node-eyebrow">${n.type}</div>
+      <div class="node-title">${n.title}</div>
+      <div class="node-sub">${n.sub||''}</div>
+      <div class="node-meta">${n.meta}</div>
+      <div class="node-badges">${bhtml}</div>
+      <div class="connect-handle" data-node="${n.id}" title="Drag to connect"></div>`;
+    ct.appendChild(el);
+    el.addEventListener('mousedown', nodeMousedown);
+    el.querySelector('.connect-handle').addEventListener('mousedown', handleMousedown);
+    el.addEventListener('dblclick', () => showDetail(n.id));
+  });
+}
+
+// ==========================================
+// CONNECTIONS
+// ==========================================
+function nodeR(id) {
+  const el = document.getElementById(`node-${id}`);
+  if (!el) return null;
+  return { x: parseFloat(el.style.left)+el.offsetWidth, y: parseFloat(el.style.top)+el.offsetHeight/2 };
+}
+function nodeL(id) {
+  const el = document.getElementById(`node-${id}`);
+  if (!el) return null;
+  return { x: parseFloat(el.style.left), y: parseFloat(el.style.top)+el.offsetHeight/2 };
+}
+const typeToMarker = { calls:'blue', handles:'green', governs:'amber', custom:'purple' };
+function drawConn(from, to, type, label) {
+  const dx = to.x-from.x, cx1=from.x+dx*.5, cy1=from.y, cx2=cx1, cy2=to.y;
+  const m = typeToMarker[type]||'purple';
+  const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',`M${from.x},${from.y} C${cx1},${cy1} ${cx2},${cy2} ${to.x},${to.y}`);
+  p.setAttribute('class',`connection-path type-${type}`);
+  p.setAttribute('marker-end',`url(#arr-${m})`);
+  const lx=(from.x+to.x)/2, ly=(from.y+to.y)/2-10;
+  const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  txt.setAttribute('x',lx);txt.setAttribute('y',ly);
+  txt.setAttribute('class','connection-label');txt.setAttribute('text-anchor','middle');
+  txt.textContent = label||type;
+  cg.appendChild(p);cg.appendChild(txt);
+}
+function redraw() {
+  cg.innerHTML='';
+  WIRED.forEach(([a,b,t]) => { const f=nodeR(a),to=nodeL(b); if(f&&to) drawConn(f,to,t,t); });
+  customConns.forEach(c => { const f=nodeR(c.from),to=nodeL(c.to); if(f&&to) drawConn(f,to,'custom',c.label); });
+}
+
+// ==========================================
+// TRANSFORM
+// ==========================================
+function applyT() { ct.style.transform=`translate(${tx}px,${ty}px) scale(${tscale})`; }
+
+// ==========================================
+// NODE DRAG
+// ==========================================
+function nodeMousedown(e) {
+  if (e.target.classList.contains('connect-handle')) return;
+  if (mode==='pan') return;
+  if (mode==='connect') {
+    const id = e.currentTarget.dataset.id;
+    if (connecting.active && connecting.srcId!==id) finishConn(id);
+    return;
+  }
+  e.stopPropagation();
+  const el=e.currentTarget;
+  document.querySelectorAll('.c-node.selected').forEach(n=>{if(n!==el)n.classList.remove('selected');});
+  el.classList.add('selected');
+  const sx=e.clientX,sy=e.clientY,sl=parseFloat(el.style.left),st=parseFloat(el.style.top);
+  const mm=(me)=>{ el.style.left=(sl+(me.clientX-sx)/tscale)+'px';el.style.top=(st+(me.clientY-sy)/tscale)+'px';redraw(); };
+  const mu=()=>{ window.removeEventListener('mousemove',mm);window.removeEventListener('mouseup',mu); };
+  window.addEventListener('mousemove',mm);window.addEventListener('mouseup',mu);
+}
+
+// ==========================================
+// CONNECT HANDLE
+// ==========================================
+function handleMousedown(e) {
+  e.stopPropagation();
+  const id=e.currentTarget.dataset.node;
+  const srcEl=document.getElementById(`node-${id}`);
+  connecting={active:true,srcId:id,srcEl};
+  srcEl.classList.add('csrc');
+  const rect=cnv.getBoundingClientRect();
+  dl.setAttribute('opacity','1');
+  const f=nodeR(id);
+  dl.setAttribute('x1',f.x*tscale+tx);dl.setAttribute('y1',f.y*tscale+ty);
+  const mm=(me)=>{
+    const cx=me.clientX-rect.left, cy=me.clientY-rect.top;
+    dl.setAttribute('x2',cx);dl.setAttribute('y2',cy);
+  };
+  const mu=(me)=>{
+    dl.setAttribute('opacity','0');
+    window.removeEventListener('mousemove',mm);window.removeEventListener('mouseup',mu);
+    const over=document.elementFromPoint(me.clientX,me.clientY);
+    const tn=over&&over.closest('.c-node');
+    if(tn&&tn.dataset.id!==id) finishConn(tn.dataset.id); else cancelConn();
+  };
+  window.addEventListener('mousemove',mm);window.addEventListener('mouseup',mu);
+}
+function finishConn(toId) {
+  const label=prompt('Label this connection (blank = “custom”):')||'custom';
+  customConns.push({id:++connId,from:connecting.srcId,to:toId,label});
+  updateConnList();
+  if(connecting.srcEl) connecting.srcEl.classList.remove('csrc');
+  connecting={active:false,srcId:null,srcEl:null};
+  redraw();
+}
+function cancelConn() {
+  if(connecting.srcEl) connecting.srcEl.classList.remove('csrc');
+  connecting={active:false,srcId:null,srcEl:null};
+}
+function updateConnList() {
+  const list=document.getElementById('custom-conn-list');
+  if(!customConns.length) { list.innerHTML='<div style="padding:8px 12px;font-size:11px;color:var(--muted)">No custom connections yet.</div>'; return; }
+  list.innerHTML=customConns.map(c=>{
+    const fn=NODES.find(n=>n.id===c.from),tn=NODES.find(n=>n.id===c.to);
+    return `<div class="tree-item" style="flex-direction:column;align-items:flex-start;gap:2px;height:auto;padding:6px 12px">
+      <span style="color:#c084fc;font-weight:600;font-size:11px">${c.label}</span>
+      <span style="color:var(--muted);font-size:10.5px">${fn?.title||c.from} → ${tn?.title||c.to}</span>
+    </div>`;
+  }).join('');
+}
+
+// ==========================================
+// PAN & ZOOM
+// ==========================================
+cnv.addEventListener('mousedown', e=>{
+  if(mode!=='pan') return;
+  cnv.classList.add('panning');
+  const sx=e.clientX,sy=e.clientY,tx0=tx,ty0=ty;
+  const mm=(me)=>{ tx=tx0+(me.clientX-sx);ty=ty0+(me.clientY-sy);applyT(); };
+  const mu=()=>{ cnv.classList.remove('panning');window.removeEventListener('mousemove',mm);window.removeEventListener('mouseup',mu); };
+  window.addEventListener('mousemove',mm);window.addEventListener('mouseup',mu);
+});
+cnv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const f=e.deltaY<0?1.1:0.9;
+  const r=cnv.getBoundingClientRect();
+  const cx=e.clientX-r.left,cy=e.clientY-r.top;
+  tx=cx-(cx-tx)*f; ty=cy-(cy-ty)*f;
+  tscale=Math.min(3,Math.max(0.15,tscale*f));
+  applyT();redraw();
+},{passive:false});
+cnv.addEventListener('mousedown',e=>{
+  if(e.target===cnv||e.target.id==='canvas-grid'){
+    document.querySelectorAll('.c-node.selected').forEach(n=>n.classList.remove('selected'));
+    if(connecting.active) cancelConn();
+  }
+});
+
+// ==========================================
+// MODE BUTTONS
+// ==========================================
+function setMode(m) {
+  mode=m;
+  cnv.className = m==='connect'?'connect-mode':m==='pan'?'pan-mode':'';
+  document.getElementById('btn-connect').classList.toggle('active',m==='connect');
+  document.getElementById('btn-pan').classList.toggle('active',m==='pan');
+}
+document.getElementById('btn-connect').onclick=()=>setMode(mode==='connect'?'select':'connect');
+document.getElementById('btn-pan').onclick=()=>setMode(mode==='pan'?'select':'pan');
+document.getElementById('btn-layout').onclick=autoLayout;
+document.getElementById('ct-zoom-in').onclick=()=>{tscale=Math.min(3,tscale*1.2);applyT();redraw();};
+document.getElementById('ct-zoom-out').onclick=()=>{tscale=Math.max(0.15,tscale/1.2);applyT();redraw();};
+document.getElementById('ct-fit').onclick=fitScreen;
+document.getElementById('ct-minimap').onclick=()=>{
+  const mm=document.getElementById('minimap');
+  mm.style.display=mm.style.display==='none'?'block':'none';
+};
+
+function fitScreen() {
+  const rect=cnv.getBoundingClientRect();
+  const xs=NODES.map(n=>{const el=document.getElementById(`node-${n.id}`);return parseFloat(el.style.left)+el.offsetWidth;});
+  const ys=NODES.map(n=>{const el=document.getElementById(`node-${n.id}`);return parseFloat(el.style.top)+el.offsetHeight;});
+  const mxX=Math.max(...xs),mxY=Math.max(...ys);
+  const s=Math.min((rect.width-80)/mxX,(rect.height-80)/mxY,1);
+  tscale=s;tx=40;ty=40;applyT();redraw();
+}
+
+function autoLayout() {
+  const cols={screen:55,rule:298,service:570,gateway:830};
+  const grouped={};
+  NODES.forEach(n=>{(grouped[n.type]=grouped[n.type]||[]).push(n);});
+  const gap=130;
+  Object.entries(grouped).forEach(([type,nodes])=>{
+    nodes.forEach((n,i)=>{
+      const el=document.getElementById(`node-${n.id}`);
+      if(!el) return;
+      el.style.transition='left 380ms ease,top 380ms ease';
+      el.style.left=(cols[type]||55)+'px';
+      el.style.top=(40+i*gap)+'px';
+      setTimeout(()=>el.style.transition='',400);
+    });
+  });
+  setTimeout(redraw,410);
+}
+
+// ==========================================
+// SIDEBARS
+// ==========================================
+let lc=false,rc=false;
+function updateClass(){
+  shell.className='';
+  if(lc&&rc) shell.classList.add('bc');
+  else if(lc) shell.classList.add('lc');
+  else if(rc) shell.classList.add('rc');
+  if(shell._be) shell.classList.add('be');
+}
+document.getElementById('btn-toggle-left').onclick=toggleL;
+document.getElementById('left-col-btn').onclick=toggleL;
+document.getElementById('btn-toggle-right').onclick=toggleR;
+document.getElementById('right-col-btn').onclick=toggleR;
+function toggleL(){lc=!lc;updateClass();document.getElementById('left-col-btn').textContent=lc?'▶':'◄';setTimeout(redraw,250);}
+function toggleR(){rc=!rc;updateClass();document.getElementById('right-col-btn').textContent=rc?'◄':'▶';setTimeout(redraw,250);}
+
+// Section expand/collapse
+document.querySelectorAll('.section-toggle').forEach(t=>{
+  t.addEventListener('click',()=>{
+    const b=document.getElementById(t.dataset.target);
+    const o=b.classList.toggle('open');
+    t.classList.toggle('open',o);
+  });
+});
+
+// ==========================================
+// BOTTOM STRIP
+// ==========================================
+document.getElementById('strip-toggle').onclick=()=>{
+  const be=shell.classList.toggle('be');
+  shell._be=be;
+};
+function runAnalysis(){
+  const inp=document.getElementById('analysis-input');
+  const q=inp.value.trim(); if(!q) return;
+  shell.classList.add('be');shell._be=true;
+  const body=document.getElementById('strip-body');
+  const card=document.createElement('div');card.className='a-card';
+  card.innerHTML=`<div class="act">🔍 Analysis — ${q}</div><div class="acb">Based on the rule register and traceability matrix: this query is most relevant to <strong>${findRelevantNodes(q)}</strong>. The traceability matrix confirms full legacy-to-modern mapping across UI, service, and gateway layers. Use Connect mode to draw custom dependency links between the highlighted nodes for visual documentation.</div>`;
+  body.insertBefore(card,body.firstChild);
+  inp.value='';
+}
+function findRelevantNodes(q) {
+  const lower=q.toLowerCase();
+  const hits=NODES.filter(n=>(n.title+n.sub+n.meta).toLowerCase().includes(lower.split(' ')[0]));
+  return hits.length?hits.map(n=>n.title).join(', '):'all visible nodes (no specific match detected)';
+}
+document.getElementById('analysis-input').addEventListener('keydown',e=>{if(e.key==='Enter')runAnalysis();});
+
+// ==========================================
+// DETAIL PANEL
+// ==========================================
+function showDetail(id){
+  const n=NODES.find(x=>x.id===id);
+  if(!n) return;
+  const panel=document.getElementById('detail-panel');
+  document.getElementById('dp-title').textContent=n.title;
+  const body=document.getElementById('dp-body');
+  const d=n.detail||{};
+  const warn=d.Warning?`<div style="background:rgba(240,165,0,.12);border:1px solid rgba(240,165,0,.3);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--amber2);margin-top:8px"><strong>⚠ Warning:</strong> ${d.Warning}</div>`:
+    (d.Note?`<div style="background:rgba(30,115,190,.1);border:1px solid rgba(30,115,190,.2);border-radius:6px;padding:8px 10px;font-size:11px;color:#7ec8f7;margin-top:8px"><strong>Note:</strong> ${d.Note}</div>`:'');
+  body.innerHTML=Object.entries(d).filter(([k])=>k!=='Warning'&&k!=='Note').map(([k,v])=>`
+    <div class="dp-row"><div class="lbl">${k}</div><div class="val">${v}</div></div>
+  `).join('<div class="dp-divider"></div>')+warn;
+  panel.classList.add('open');
+}
+document.getElementById('dp-close').onclick=()=>document.getElementById('detail-panel').classList.remove('open');
+
+// Step items
+document.querySelectorAll('.step-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.step-item').forEach(s=>s.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// ==========================================
+// MINIMAP
+// ==========================================
+function updateMinimap(){
+  const mm=document.getElementById('minimap');
+  if(mm.style.display==='none') return;
+  const mmW=130,mmH=86,fullW=1100,fullH=900;
+  const sx=mmW/fullW,sy=mmH/fullH;
+  // Draw nodes on canvas
+  const c=document.getElementById('mm-canvas');
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,mmW,mmH);
+  const typeColor={screen:'#1e73be',rule:'#f0a500',service:'#0d7377',gateway:'#8b5cf6'};
+  NODES.forEach(n=>{
+    const el=document.getElementById(`node-${n.id}`);
+    if(!el) return;
+    const x=parseFloat(el.style.left)*sx, y=parseFloat(el.style.top)*sy;
+    const w=el.offsetWidth*sx, h=el.offsetHeight*sy;
+    ctx.fillStyle=typeColor[n.type]||'#666';
+    ctx.globalAlpha=0.55;
+    ctx.beginPath();ctx.roundRect(x,y,Math.max(w,4),Math.max(h,4),2);ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  // Viewport
+  const rect=cnv.getBoundingClientRect();
+  const vpX=(-tx/tscale)*sx, vpY=(-ty/tscale)*sy;
+  const vpW=(rect.width/tscale)*sx, vpH=(rect.height/tscale)*sy;
+  const vp=document.getElementById('minimap-viewport');
+  vp.style.left=Math.max(0,vpX)+'px';
+  vp.style.top=Math.max(0,vpY)+'px';
+  vp.style.width=Math.min(mmW,vpW)+'px';
+  vp.style.height=Math.min(mmH,vpH)+'px';
+}
+setInterval(updateMinimap,300);
+
+// ==========================================
+// INIT
+// ==========================================
+buildNodes();
+applyT();
+// Open default sections
+document.querySelectorAll('.section-toggle[data-target]').forEach(t=>{
+  const b=document.getElementById(t.dataset.target);
+  if(b&&b.classList.contains('open')) t.classList.add('open');
+});
+setTimeout(()=>{ redraw(); fitScreen(); },120);
+<\/script>
+</body>
+</html>
